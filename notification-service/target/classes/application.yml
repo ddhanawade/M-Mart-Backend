@@ -1,0 +1,180 @@
+server:
+  port: 8085
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+
+spring:
+  application:
+    name: notification-service
+  
+  # Exclude JPA auto-configuration since this service doesn't use database
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+  
+  # Email Configuration
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+    test-connection: false
+  
+  # Template Engine Configuration
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML
+  
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: 15000
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          multiplier: 2
+        acknowledge-mode: auto
+        prefetch: 10
+        concurrency: 3
+        max-concurrency: 10
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000
+        max-attempts: 3
+        multiplier: 2
+  
+  # Redis Configuration for Caching
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+  
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000 # 1 hour
+      cache-null-values: false
+  
+  # Cloud Configuration
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+
+# Eureka Configuration - Disabled for standalone mode
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    redis:
+      enabled: true
+    rabbit:
+      enabled: true
+    mail:
+      enabled: false
+
+# Logging Configuration
+logging:
+  level:
+    com.mahabaleshwermart: INFO
+    org.springframework.amqp: DEBUG
+    org.springframework.mail: DEBUG
+    org.thymeleaf: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/notification-service.log
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+# Application Specific Configuration
+app:
+  notification:
+    email:
+      enabled: ${EMAIL_ENABLED:true}
+      from: ${EMAIL_FROM:noreply@mahabaleshwermart.com}
+      templates:
+        order-confirmation: "order-confirmation"
+        order-status-update: "order-status-update"
+        order-cancellation: "order-cancellation"
+        payment-confirmation: "payment-confirmation"
+        order-delivered: "order-delivered"
+        welcome: "welcome"
+        password-reset: "password-reset"
+    
+    sms:
+      enabled: ${SMS_ENABLED:true}
+      api-key: ${SMS_API_KEY:demo-key}
+      sender-id: ${SMS_SENDER_ID:MHMART}
+      gateway-url: ${SMS_GATEWAY_URL:https://api.textlocal.in/send/}
+      critical-only: ${SMS_CRITICAL_ONLY:true}
+    
+    push:
+      enabled: ${PUSH_ENABLED:false}
+      firebase-key: ${FIREBASE_KEY:}
+    
+    retry:
+      max-attempts: 3
+      initial-delay: 1000
+      multiplier: 2
+    
+    rate-limiting:
+      email:
+        per-minute: 60
+        per-hour: 500
+      sms:
+        per-minute: 10
+        per-hour: 100 

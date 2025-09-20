@@ -1,0 +1,232 @@
+services:
+  # Infrastructure Services
+  mysql:
+    image: mysql:8.0
+    container_name: mahabaleshwer-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mahabaleshwer_mart
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - mahabaleshwer-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: mahabaleshwer-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - mahabaleshwer-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: mahabaleshwer-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - mahabaleshwer-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: mahabaleshwer-user-service
+    ports:
+      - "8081:8081"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - DB_HOST=mahabaleshwer-mysql
+      - REDIS_HOST=mahabaleshwer-redis
+      - MYSQL_HOST=mahabaleshwer-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=root
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # Product Service
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    container_name: mahabaleshwer-product-service
+    ports:
+      - "8082:8082"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - DB_HOST=mahabaleshwer-mysql
+      - REDIS_HOST=mahabaleshwer-redis
+      - MYSQL_HOST=mahabaleshwer-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=root
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # Cart Service
+  cart-service:
+    build:
+      context: .
+      dockerfile: cart-service/Dockerfile
+    container_name: mahabaleshwer-cart-service
+    ports:
+      - "8083:8083"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - DB_HOST=mahabaleshwer-mysql
+      - REDIS_HOST=mahabaleshwer-redis
+      - MYSQL_HOST=mahabaleshwer-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=root
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # Order Service
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    container_name: mahabaleshwer-order-service
+    ports:
+      - "8084:8084"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - DB_HOST=mahabaleshwer-mysql
+      - REDIS_HOST=mahabaleshwer-redis
+      - RABBITMQ_HOST=mahabaleshwer-rabbitmq
+      - MYSQL_HOST=mahabaleshwer-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=root
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: mahabaleshwer-notification-service
+    ports:
+      - "8085:8085"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - RABBITMQ_HOST=mahabaleshwer-rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+networks:
+  mahabaleshwer-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

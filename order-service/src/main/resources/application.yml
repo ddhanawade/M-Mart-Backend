@@ -1,0 +1,195 @@
+server:
+  port: 8084
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+
+spring:
+  application:
+    name: order-service
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:mahabaleshwer_mart_orders}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        generate_statistics: false
+        jdbc:
+          time_zone: UTC
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  
+  # Redis Configuration for Caching
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+  
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: 15000
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          multiplier: 2
+        acknowledge-mode: auto
+        prefetch: 10
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000
+        max-attempts: 3
+        multiplier: 2
+  
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000 # 10 minutes
+      cache-null-values: false
+  
+  # Cloud Configuration
+  cloud:
+    config:
+      uri: ${CONFIG_SERVER_URI:http://localhost:8888}
+      fail-fast: false
+
+# Eureka Configuration
+eureka:
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+
+# Feign Configuration
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 10000
+        logger-level: basic
+  hystrix:
+    enabled: false
+  circuitbreaker:
+    enabled: true
+
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,caches
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+    rabbit:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.mahabaleshwermart: INFO
+    org.springframework.cache: DEBUG
+    org.springframework.amqp: DEBUG
+    com.mahabaleshwermart.orderservice.external: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/order-service.log
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+# Application Specific Configuration
+app:
+  order:
+    auto-confirm-timeout: 1800 # 30 minutes in seconds
+    cancellation-window: 3600 # 1 hour in seconds
+    delivery-estimation-days: 3
+    tax-rate: 0.18 # 18% GST
+    free-delivery-threshold: 500
+    standard-delivery-charge: 50
+  
+  payment:
+    timeout: 300 # 5 minutes in seconds
+    retry-attempts: 3
+    supported-methods:
+      - CREDIT_CARD
+      - DEBIT_CARD
+      - UPI
+      - NET_BANKING
+      - WALLET
+      - CASH_ON_DELIVERY
+      - BANK_TRANSFER
+  
+  notification:
+    enabled: true
+    email:
+      enabled: true
+      templates:
+        order-confirmation: "order-confirmation-template"
+        order-status-update: "order-status-update-template"
+        order-cancellation: "order-cancellation-template"
+    sms:
+      enabled: true
+      critical-only: true
+  
+  cache:
+    order:
+      ttl: 600 # 10 minutes
+    order-stats:
+      ttl: 1800 # 30 minutes 

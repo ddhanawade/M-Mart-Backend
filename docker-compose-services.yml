@@ -1,0 +1,142 @@
+version: '3.8'
+
+services:
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: mahabaleshwer-user-service
+    ports:
+      - "8081:8081"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - DB_HOST=mahabaleshwer-mysql
+      - REDIS_HOST=mahabaleshwer-redis
+      - MYSQL_HOST=mahabaleshwer-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # Product Service
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    container_name: mahabaleshwer-product-service
+    ports:
+      - "8082:8082"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - DB_HOST=mahabaleshwer-mysql
+      - REDIS_HOST=mahabaleshwer-redis
+      - MYSQL_HOST=mahabaleshwer-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # Cart Service
+  cart-service:
+    build:
+      context: .
+      dockerfile: cart-service/Dockerfile
+    container_name: mahabaleshwer-cart-service
+    ports:
+      - "8083:8083"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - DB_HOST=mahabaleshwer-mysql
+      - REDIS_HOST=mahabaleshwer-redis
+      - MYSQL_HOST=mahabaleshwer-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # Order Service
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    container_name: mahabaleshwer-order-service
+    ports:
+      - "8084:8084"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - DB_HOST=mahabaleshwer-mysql
+      - REDIS_HOST=mahabaleshwer-redis
+      - RABBITMQ_HOST=mahabaleshwer-rabbitmq
+      - MYSQL_HOST=mahabaleshwer-mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_USERNAME=root
+      - MYSQL_PASSWORD=root
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    container_name: mahabaleshwer-notification-service
+    ports:
+      - "8085:8085"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_CLOUD_CONFIG_ENABLED=false
+      - EUREKA_CLIENT_ENABLED=false
+      - RABBITMQ_HOST=mahabaleshwer-rabbitmq
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+networks:
+  mahabaleshwer-network:
+    external: true
+    name: mahabaleshwer-mart-backend_mahabaleshwer-network

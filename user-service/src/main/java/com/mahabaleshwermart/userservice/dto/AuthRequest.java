@@ -1,0 +1,1 @@
+// Deprecated combined DTO file. Replaced by individual classes.

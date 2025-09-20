@@ -1,0 +1,16 @@
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/mapper/ProductMapper.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/entity/ProductReview.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/service/ProductService.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/dto/CategoryDto.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/dto/ProductReviewDto.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/controller/ProductController.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/config/SecurityConfig.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/entity/Product.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/dto/ProductDto.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/controller/TestController.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/dto/ProductSearchRequest.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/dto/NutritionalInfoDto.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/repository/ProductRepository.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/ProductServiceApplication.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/entity/Category.java
+/Users/ddhanawade/Desktop/Personal-Workspace/mahabaleshwer-mart-backend/product-service/src/main/java/com/mahabaleshwermart/productservice/dto/ProductFilterDto.java
