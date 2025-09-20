@@ -1,5 +1,86 @@
+version: '3.8'
+
 services:
   # Infrastructure Services
+  
+  # Config Server
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: mahabaleshwer-config-server
+    ports:
+      - "8888:8888"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+      - CONFIG_SERVER_USERNAME=config-user
+      - CONFIG_SERVER_PASSWORD=config-pass
+      - EUREKA_SERVER_URL=http://service-discovery:8761/eureka/
+      - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=classpath:/config/
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Service Discovery (Eureka Server)
+  service-discovery:
+    build:
+      context: .
+      dockerfile: service-discovery/Dockerfile
+    container_name: mahabaleshwer-service-discovery
+    ports:
+      - "8761:8761"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_USERNAME=eureka-user
+      - EUREKA_SERVER_PASSWORD=eureka-pass
+    depends_on:
+      config-server:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: mahabaleshwer-api-gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URL=http://service-discovery:8761/eureka/
+      - REDIS_HOST=mahabaleshwer-redis
+      - JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    depends_on:
+      config-server:
+        condition: service_started
+      service-discovery:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
   mysql:
     image: mysql:8.0
     container_name: mahabaleshwer-mysql
@@ -68,16 +149,20 @@ services:
       - mahabaleshwer-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_CLOUD_CONFIG_ENABLED=false
-      - EUREKA_CLIENT_ENABLED=false
-      - DB_HOST=mahabaleshwer-mysql
-      - REDIS_HOST=mahabaleshwer-redis
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URL=http://service-discovery:8761/eureka/
       - MYSQL_HOST=mahabaleshwer-mysql
       - MYSQL_PORT=3306
-      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_DATABASE=mahabaleshwer_mart_users
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=root
+      - REDIS_HOST=mahabaleshwer-redis
+      - JWT_SECRET=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
     depends_on:
+      config-server:
+        condition: service_started
+      service-discovery:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       redis:
@@ -101,16 +186,19 @@ services:
       - mahabaleshwer-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_CLOUD_CONFIG_ENABLED=false
-      - EUREKA_CLIENT_ENABLED=false
-      - DB_HOST=mahabaleshwer-mysql
-      - REDIS_HOST=mahabaleshwer-redis
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URL=http://service-discovery:8761/eureka/
       - MYSQL_HOST=mahabaleshwer-mysql
       - MYSQL_PORT=3306
-      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_DATABASE=mahabaleshwer_mart_products
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=root
+      - REDIS_HOST=mahabaleshwer-redis
     depends_on:
+      config-server:
+        condition: service_started
+      service-discovery:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       redis:
@@ -134,16 +222,19 @@ services:
       - mahabaleshwer-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_CLOUD_CONFIG_ENABLED=false
-      - EUREKA_CLIENT_ENABLED=false
-      - DB_HOST=mahabaleshwer-mysql
-      - REDIS_HOST=mahabaleshwer-redis
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URL=http://service-discovery:8761/eureka/
       - MYSQL_HOST=mahabaleshwer-mysql
       - MYSQL_PORT=3306
-      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_DATABASE=mahabaleshwer_mart_carts
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=root
+      - REDIS_HOST=mahabaleshwer-redis
     depends_on:
+      config-server:
+        condition: service_started
+      service-discovery:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       redis:
@@ -167,17 +258,22 @@ services:
       - mahabaleshwer-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_CLOUD_CONFIG_ENABLED=false
-      - EUREKA_CLIENT_ENABLED=false
-      - DB_HOST=mahabaleshwer-mysql
-      - REDIS_HOST=mahabaleshwer-redis
-      - RABBITMQ_HOST=mahabaleshwer-rabbitmq
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URL=http://service-discovery:8761/eureka/
       - MYSQL_HOST=mahabaleshwer-mysql
       - MYSQL_PORT=3306
-      - MYSQL_DATABASE=mahabaleshwer_mart
+      - MYSQL_DATABASE=mahabaleshwer_mart_orders
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=root
+      - REDIS_HOST=mahabaleshwer-redis
+      - RABBITMQ_HOST=mahabaleshwer-rabbitmq
+      - RABBITMQ_USERNAME=admin
+      - RABBITMQ_PASSWORD=admin123
     depends_on:
+      config-server:
+        condition: service_started
+      service-discovery:
+        condition: service_healthy
       mysql:
         condition: service_healthy
       redis:
@@ -203,10 +299,16 @@ services:
       - mahabaleshwer-network
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_CLOUD_CONFIG_ENABLED=false
-      - EUREKA_CLIENT_ENABLED=false
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URL=http://service-discovery:8761/eureka/
       - RABBITMQ_HOST=mahabaleshwer-rabbitmq
+      - RABBITMQ_USERNAME=admin
+      - RABBITMQ_PASSWORD=admin123
     depends_on:
+      config-server:
+        condition: service_started
+      service-discovery:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     healthcheck:

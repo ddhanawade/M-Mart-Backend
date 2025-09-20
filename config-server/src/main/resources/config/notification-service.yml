@@ -1,0 +1,40 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: notification-service
+  
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
+  
+  # Mail Configuration
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Application Specific Configuration
+app:
+  notification:
+    email:
+      from: ${NOTIFICATION_EMAIL_FROM:noreply@mahabaleshwermart.com}
+      templates-path: ${EMAIL_TEMPLATES_PATH:/templates/email}
+    sms:
+      enabled: ${SMS_ENABLED:false}
+      provider: ${SMS_PROVIDER:twilio}
+      api-key: ${SMS_API_KEY:}
+    push:
+      enabled: ${PUSH_ENABLED:false}
+      fcm-key: ${FCM_KEY:}

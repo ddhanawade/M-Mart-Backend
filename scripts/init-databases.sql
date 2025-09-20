@@ -10,7 +10,7 @@ CREATE DATABASE IF NOT EXISTS mahabaleshwer_mart_products
   CHARACTER SET utf8mb4 
   COLLATE utf8mb4_unicode_ci;
 
-CREATE DATABASE IF NOT EXISTS mahabaleshwer_mart_cart 
+CREATE DATABASE IF NOT EXISTS mahabaleshwer_mart_carts 
   CHARACTER SET utf8mb4 
   COLLATE utf8mb4_unicode_ci;
 

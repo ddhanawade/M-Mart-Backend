@@ -35,9 +35,9 @@
     </properties>
 
     <modules>
-<!--        <module>config-server</module>-->
-<!--        <module>service-discovery</module>-->
-<!--        <module>api-gateway</module>-->
+        <module>config-server</module>
+        <module>service-discovery</module>
+        <module>api-gateway</module>
         <module>user-service</module>
         <module>product-service</module>
         <module>cart-service</module>
@@ -99,6 +99,11 @@
             <dependency>
                 <groupId>org.springdoc</groupId>
                 <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${swagger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
                 <version>${swagger.version}</version>
             </dependency>
 

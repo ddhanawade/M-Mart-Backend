@@ -1,0 +1,93 @@
+server:
+  port: 8888
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: config-server
+  
+  # Config Server Configuration
+  cloud:
+    config:
+      server:
+        # Use native (filesystem) configuration instead of Git for local deployment
+        native:
+          search-locations: classpath:/config/
+        # Provide dummy Git configuration to satisfy requirements
+        git:
+          uri: file:///tmp/config-repo
+          skip-ssl-validation: true
+          clone-on-start: false
+        # Enable encryption for sensitive properties
+        encrypt:
+          enabled: false
+  profiles:
+    active: native
+  
+  # Security Configuration
+  security:
+    user:
+      name: ${CONFIG_SERVER_USERNAME:config-user}
+      password: ${CONFIG_SERVER_PASSWORD:config-pass}
+
+# Eureka Configuration
+eureka:
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    healthcheck:
+      enabled: true
+
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,refresh,env
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    config:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Config Server Security
+config:
+  server:
+    security:
+      username: ${CONFIG_SERVER_USERNAME:config-user}
+      password: ${CONFIG_SERVER_PASSWORD:config-pass}
+
+# Logging Configuration
+logging:
+  level:
+    com.mahabaleshwermart: INFO
+    org.springframework.cloud.config: DEBUG
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/config-server.log
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  show-actuator: true

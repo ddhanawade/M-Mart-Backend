@@ -1,0 +1,96 @@
+server:
+  port: 8761
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: service-discovery
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
+  
+  # Config Server Configuration
+  cloud:
+    config:
+      uri: ${CONFIG_SERVER_URI:http://localhost:8888}
+      fail-fast: false
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+  
+  # Security Configuration
+  security:
+    user:
+      name: ${EUREKA_SERVER_USERNAME:eureka-user}
+      password: ${EUREKA_SERVER_PASSWORD:eureka-pass}
+
+# Eureka Server Configuration
+eureka:
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
+  client:
+    # Don't register itself as a client
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+  server:
+    # Disable self-preservation mode in development
+    enable-self-preservation: ${EUREKA_SELF_PRESERVATION:false}
+    # Eviction interval for expired services
+    eviction-interval-timer-in-ms: 15000
+    # Response cache update interval
+    response-cache-update-interval-ms: 5000
+    # Response cache auto expiration
+    response-cache-auto-expiration-in-seconds: 180
+    # Renewal threshold update interval
+    renewal-threshold-update-interval-ms: 15000
+    # Expected client renewal interval
+    expected-client-renewal-interval-seconds: 30
+    # Security configuration
+    security:
+      username: ${EUREKA_SERVER_USERNAME:eureka-user}
+      password: ${EUREKA_SERVER_PASSWORD:eureka-pass}
+
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,eureka
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    eureka:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    com.mahabaleshwermart: INFO
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/service-discovery.log
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  show-actuator: true

@@ -1,22 +1,4 @@
-# Multi-stage build for Order Service
-FROM eclipse-temurin:21-jdk-alpine AS builder
-
-WORKDIR /app
-
-# Copy parent POM and all modules for multi-module build
-COPY pom.xml .
-COPY common/ ./common/
-COPY user-service/ ./user-service/
-COPY product-service/ ./product-service/
-COPY cart-service/ ./cart-service/
-COPY order-service/ ./order-service/
-COPY notification-service/ ./notification-service/
-
-# Build the application
-RUN apk add --no-cache maven
-RUN mvn clean package -DskipTests -pl order-service -am
-
-# Runtime stage
+# Simple Dockerfile for Order Service using pre-built JAR
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
@@ -28,8 +10,8 @@ RUN addgroup -g 1001 -S appuser && \
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Copy the built JAR from builder stage
-COPY --from=builder /app/order-service/target/order-service-*.jar app.jar
+# Copy the pre-built JAR file
+COPY order-service/target/order-service-*.jar app.jar
 
 # Change ownership to non-root user
 RUN chown appuser:appuser app.jar

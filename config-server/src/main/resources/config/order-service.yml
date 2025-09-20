@@ -1,0 +1,44 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: order-service
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:mahabaleshwer_mart_orders}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    show-sql: false
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:admin123}
+
+# Application Specific Configuration
+app:
+  order:
+    payment:
+      timeout: ${ORDER_PAYMENT_TIMEOUT:300} # 5 minutes in seconds
+      retry-attempts: ${ORDER_PAYMENT_RETRY:3}
+    processing:
+      timeout: ${ORDER_PROCESSING_TIMEOUT:1800} # 30 minutes in seconds
+    invoice:
+      template-path: ${INVOICE_TEMPLATE_PATH:/templates/invoice}
+      storage-path: ${INVOICE_STORAGE_PATH:/storage/invoices}

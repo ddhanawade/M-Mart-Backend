@@ -1,0 +1,42 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: product-service
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:mahabaleshwer_mart_products}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    show-sql: false
+  
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+    
+    # Elasticsearch Configuration
+    elasticsearch:
+      repositories:
+        enabled: true
+      uris: ${ELASTICSEARCH_URI:http://localhost:9200}
+
+# Application Specific Configuration
+app:
+  product:
+    image:
+      upload-path: ${PRODUCT_IMAGE_PATH:/uploads/products}
+      max-size: ${PRODUCT_IMAGE_MAX_SIZE:5MB}
+    search:
+      index-name: ${PRODUCT_SEARCH_INDEX:products}
+    cache:
+      ttl: ${PRODUCT_CACHE_TTL:3600} # 1 hour in seconds
