@@ -1,10 +1,14 @@
 package com.mahabaleshwermart.orderservice.service;
 
+import com.mahabaleshwermart.common.events.OrderNotificationEvent;
 import com.mahabaleshwermart.orderservice.entity.Order;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * Notification Service
@@ -173,27 +177,4 @@ public class NotificationService {
     }
 }
 
-/**
- * Order notification event for RabbitMQ messaging
- */
-@lombok.Data
-@lombok.Builder
-@lombok.NoArgsConstructor
-@lombok.AllArgsConstructor
-class OrderNotificationEvent {
-    private String eventType;
-    private String orderId;
-    private String orderNumber;
-    private String userEmail;
-    private String userName;
-    private String userPhone;
-    private java.math.BigDecimal totalAmount;
-    private String message;
-    private String oldStatus;
-    private String newStatus;
-    private String trackingNumber;
-    private String transactionId;
-    private String cancellationReason;
-    private String deliveryAddress;
-    private java.time.LocalDateTime timestamp = java.time.LocalDateTime.now();
-} 
+ 

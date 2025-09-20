@@ -9,24 +9,24 @@ import org.springframework.web.bind.annotation.RequestParam;
 /**
  * Feign client for Cart Service communication
  */
-@FeignClient(name = "cart-service", path = "/api/cart")
+@FeignClient(name = "cart-service")
 public interface CartServiceClient {
     
     /**
      * Get user cart
      */
-    @GetMapping
+    @GetMapping("/api/cart")
     CartSummaryDto getUserCart(@RequestParam("userId") String userId);
     
     /**
      * Validate cart
      */
-    @PostMapping("/validate")
+    @PostMapping("/api/cart/validate")
     CartSummaryDto validateCart(@RequestParam("userId") String userId);
     
     /**
      * Clear user cart
      */
-    @DeleteMapping("/clear")
+    @DeleteMapping("/api/cart/clear")
     void clearUserCart(@RequestParam("userId") String userId);
 }

@@ -1,8 +1,12 @@
 package com.mahabaleshwermart.notificationservice.config;
 
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import java.util.Arrays;
 
 /**
  * RabbitMQ Configuration for Notification Service
@@ -86,5 +90,25 @@ public class RabbitMQConfig {
     @Bean
     public Binding bindOrderDelivered(Queue orderDeliveredQueue, TopicExchange orderNotificationsExchange) {
         return BindingBuilder.bind(orderDeliveredQueue).to(orderNotificationsExchange).with(RK_ORDER_DELIVERED);
+    }
+
+    /**
+     * Configure message converter to allow deserialization of OrderNotificationEvent
+     */
+    @Bean
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory) {
+        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        
+        // Configure message converter to allow our OrderNotificationEvent class
+        SimpleMessageConverter messageConverter = new SimpleMessageConverter();
+        messageConverter.setAllowedListPatterns(Arrays.asList(
+            "com.mahabaleshwermart.common.events.*",
+            "java.time.*",
+            "java.math.*"
+        ));
+        
+        factory.setMessageConverter(messageConverter);
+        return factory;
     }
 }

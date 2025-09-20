@@ -71,6 +71,23 @@ public class OrderController {
     }
     
     /**
+     * Create simplified order with mock data
+     */
+    @PostMapping("/simplified")
+    @Operation(summary = "Create simplified order", description = "Create order with mock data for testing")
+    public ResponseEntity<ApiResponse<OrderDto>> createSimplifiedOrder(
+            @Valid @RequestBody CreateOrderRequest request) {
+        
+        log.info("Create simplified order request");
+        
+        OrderDto order = orderService.createSimplifiedOrderPublic(request);
+        
+        return ResponseEntity.status(201).body(
+            ApiResponse.created(order, "Simplified order created successfully")
+        );
+    }
+    
+    /**
      * Get order by ID
      */
     @GetMapping("/{orderId}")

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation - Mahabaleshwer Mart</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        .order-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .order-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #555;
+        }
+        .info-value {
+            color: #333;
+        }
+        .total-amount {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+        }
+        .success-icon {
+            font-size: 48px;
+            color: #4CAF50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🛒 Mahabaleshwer Mart</div>
+            <h1>Order Confirmation</h1>
+        </div>
+        
+        <div class="success-icon">✅</div>
+        
+        <p>Dear <strong th:text="${userName}">Customer</strong>,</p>
+        
+        <p>Thank you for your order! We're excited to confirm that your order has been successfully placed and is being processed.</p>
+        
+        <div class="order-info">
+            <div class="order-number" th:text="${orderNumber}">ORD-20240101-123456</div>
+            
+            <div class="info-row">
+                <span class="info-label">Order Total:</span>
+                <span class="info-value total-amount" th:text="'₹' + ${totalAmount}">₹999.99</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Expected Delivery:</span>
+                <span class="info-value" th:text="${deliveryDate}">3-5 business days</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Order Status:</span>
+                <span class="info-value">Processing</span>
+            </div>
+        </div>
+        
+        <div style="text-align: center;">
+            <a th:href="${trackingUrl}" class="button">Track Your Order</a>
+        </div>
+        
+        <h3>What's Next?</h3>
+        <ul>
+            <li>📦 We'll prepare your order with care</li>
+            <li>🚚 You'll receive shipping updates via email</li>
+            <li>📱 Track your order anytime using the link above</li>
+            <li>🏠 Enjoy your fresh products delivered to your door!</li>
+        </ul>
+        
+        <div class="footer">
+            <p><strong>Need Help?</strong></p>
+            <p>Contact us at <a href="mailto:support@mahabaleshwermart.com">support@mahabaleshwermart.com</a></p>
+            <p>or call us at +91-1234567890</p>
+            <br>
+            <p>Thank you for choosing Mahabaleshwer Mart!</p>
+            <p><em>Fresh • Organic • Delivered with Love</em></p>
+        </div>
+    </div>
+</body>
+</html>

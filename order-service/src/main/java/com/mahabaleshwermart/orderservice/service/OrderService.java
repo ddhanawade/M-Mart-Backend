@@ -6,7 +6,6 @@ import com.mahabaleshwermart.common.exception.ResourceNotFoundException;
 import com.mahabaleshwermart.orderservice.dto.OrderDto;
 import com.mahabaleshwermart.orderservice.entity.*;
 import com.mahabaleshwermart.orderservice.dto.CreateOrderRequest;
-import com.mahabaleshwermart.orderservice.dto.CreateOrderPaymentRequest;
 import com.mahabaleshwermart.orderservice.mapper.OrderMapper;
 import com.mahabaleshwermart.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -34,11 +33,6 @@ public class OrderService {
     
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
-    // Removed external service dependencies for simplified testing
-    // private final CartServiceClient cartServiceClient;
-    // private final ProductServiceClient productServiceClient;
-    // private final UserServiceClient userServiceClient;
-    // private final PaymentService paymentService;
     private final NotificationService notificationService;
     
     private static final BigDecimal TAX_RATE = BigDecimal.valueOf(0.18); // 18% GST
@@ -90,6 +84,31 @@ public class OrderService {
         order = orderRepository.save(order);
         
         log.info("Order created successfully: {}", order.getOrderNumber());
+        return orderMapper.toDto(order);
+    }
+    
+    /**
+     * Create simplified order with mock data (public method for testing)
+     */
+    @Transactional
+    public OrderDto createSimplifiedOrderPublic(CreateOrderRequest request) {
+        log.info("Creating simplified order with mock data");
+        
+        // Use a default user ID for simplified orders
+        String defaultUserId = "test-user-123";
+        Order order = createSimplifiedOrder(defaultUserId, request);
+        
+        // Send notification
+        try {
+            notificationService.sendOrderConfirmation(order);
+        } catch (Exception e) {
+            log.warn("Failed to send order confirmation notification for order: {}", order.getOrderNumber(), e);
+        }
+        
+        // Save the order
+        order = orderRepository.save(order);
+        
+        log.info("Simplified order created successfully: {}", order.getOrderNumber());
         return orderMapper.toDto(order);
     }
     
@@ -301,12 +320,14 @@ public class OrderService {
     // Private helper methods
     
     private Order createSimplifiedOrder(String userId, CreateOrderRequest request) {
-        // Create a simplified order with mock data for testing
+        log.info("Creating simplified order for user: {}", userId);
+        
+        // Create order with mock data
         Order.OrderBuilder orderBuilder = Order.builder()
                 .userId(userId)
-                .userName("Test User") // Mock user name
-                .userEmail("test@example.com") // Mock user email
-                .userPhone("9876543210") // Mock user phone
+                .userName("Test User")
+                .userEmail("test@example.com")
+                .userPhone("1234567890")
                 .specialInstructions(request.getSpecialInstructions());
         
         // Set delivery address
@@ -317,51 +338,53 @@ public class OrderService {
         OrderPayment payment = orderMapper.toOrderPayment(request.getPayment());
         orderBuilder.payment(payment);
         
-        // Calculate amounts (simplified with mock values)
-        BigDecimal subtotal = BigDecimal.valueOf(299.99); // Mock subtotal
+        // Calculate amounts with mock data
+        BigDecimal subtotal = new BigDecimal("299.99");
+        BigDecimal discountAmount = new BigDecimal("50.00");
         BigDecimal taxAmount = subtotal.multiply(TAX_RATE);
-        BigDecimal deliveryCharge = subtotal.compareTo(FREE_DELIVERY_THRESHOLD) >= 0 ? 
-                BigDecimal.ZERO : STANDARD_DELIVERY_CHARGE;
+        BigDecimal deliveryCharge = STANDARD_DELIVERY_CHARGE;
         
         orderBuilder
                 .subtotal(subtotal)
                 .taxAmount(taxAmount)
                 .deliveryCharge(deliveryCharge)
-                .discountAmount(BigDecimal.ZERO)
-                .totalItems(1) // Mock total items
-                .totalQuantity(1); // Mock total quantity
+                .discountAmount(discountAmount)
+                .totalItems(1)
+                .totalQuantity(2);
         
         Order order = orderBuilder.build();
         
         // Initialize timeline list
         order.setTimeline(new ArrayList<>());
         
-        // Add mock order items with all required fields
-        OrderItem mockItem = OrderItem.builder()
-                .order(order)
-                .productId("mock-product-id")
-                .productName("Test Product")
-                .productImage("https://example.com/images/test-product.jpg") // Required field
-                .productSku("TEST-SKU-001")
-                .productCategory("GROCERIES") // Add category
-                .productUnit("piece") // Add unit
-                .quantity(1)
-                .unitPrice(BigDecimal.valueOf(299.99))
-                .originalPrice(BigDecimal.valueOf(299.99)) // Add original price
-                .totalPrice(BigDecimal.valueOf(299.99))
-                .discountAmount(BigDecimal.ZERO) // Add discount amount
-                .organic(false) // Add organic flag
-                .fresh(true) // Add fresh flag
-                .itemStatus(OrderItem.ItemStatus.CONFIRMED) // Add item status
-                .build();
-        
-        // Use mutable ArrayList instead of immutable List.of()
+        // Create mock order items
         List<OrderItem> orderItems = new ArrayList<>();
-        orderItems.add(mockItem);
+        OrderItem orderItem = OrderItem.builder()
+                .order(order)
+                .productId("mock-product-001")
+                .productName("Sample Product")
+                .productImage("https://example.com/images/sample.jpg")
+                .productSku("SAMPLE-SKU-001")
+                .productCategory("GROCERIES")
+                .productUnit("piece")
+                .quantity(2)
+                .unitPrice(new BigDecimal("149.99"))
+                .originalPrice(new BigDecimal("174.99"))
+                .totalPrice(new BigDecimal("299.98"))
+                .discountAmount(new BigDecimal("50.00"))
+                .organic(false)
+                .fresh(true)
+                .itemStatus(OrderItem.ItemStatus.CONFIRMED)
+                .build();
+        orderItems.add(orderItem);
         order.setItems(orderItems);
+        
+        log.info("Created order with {} items, total amount: {}", orderItems.size(), 
+                order.getSubtotal().add(order.getTaxAmount()).add(order.getDeliveryCharge()).subtract(order.getDiscountAmount()));
         
         return order;
     }
+    
     
     // Removed createOrderFromCartItems method - not needed for simplified implementation
     

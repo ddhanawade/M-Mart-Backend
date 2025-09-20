@@ -2,6 +2,7 @@ package com.mahabaleshwermart.notificationservice.listener;
 
 import com.mahabaleshwermart.notificationservice.service.EmailService;
 import com.mahabaleshwermart.notificationservice.service.SmsService;
+import com.mahabaleshwermart.common.events.OrderNotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -219,28 +220,4 @@ public class OrderNotificationListener {
         LocalDateTime deliveryDate = LocalDateTime.now().plusDays(3);
         return deliveryDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"));
     }
-}
-
-/**
- * Order notification event data structure
- */
-@lombok.Data
-@lombok.NoArgsConstructor
-@lombok.AllArgsConstructor
-class OrderNotificationEvent {
-    private String eventType;
-    private String orderId;
-    private String orderNumber;
-    private String userEmail;
-    private String userName;
-    private String userPhone;
-    private BigDecimal totalAmount;
-    private String message;
-    private String oldStatus;
-    private String newStatus;
-    private String trackingNumber;
-    private String transactionId;
-    private String cancellationReason;
-    private String deliveryAddress;
-    private LocalDateTime timestamp;
 } 
