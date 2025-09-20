@@ -138,9 +138,15 @@ management:
 # Logging Configuration
 logging:
   level:
-    com.mahabaleshwermart: INFO
+    com.mahabaleshwermart: DEBUG
+    com.mahabaleshwermart.orderservice: DEBUG
     org.springframework.cache: DEBUG
     org.springframework.amqp: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.transaction: DEBUG
+    org.hibernate: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     com.mahabaleshwermart.orderservice.external: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"

@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequestMapping("/api/orders")
+@CrossOrigin(origins = {"http://localhost:4200"}, allowCredentials = "true")
 @RequiredArgsConstructor
 @Tag(name = "Orders", description = "Order processing and management endpoints")
 public class OrderController {
@@ -47,9 +48,19 @@ public class OrderController {
     @Operation(summary = "Create order", description = "Create order from user's cart")
     public ResponseEntity<ApiResponse<OrderDto>> createOrder(
             @Valid @RequestBody CreateOrderRequest request,
-            Authentication authentication) {
+            Authentication authentication,
+            @RequestHeader(value = "X-User-Id", required = false) String xUserId,
+            @RequestHeader(value = "X-User-Email", required = false) String xUserEmail,
+            @RequestHeader(value = "X-User-Name", required = false) String xUserName,
+            @RequestHeader(value = "X-User-Phone", required = false) String xUserPhone) {
         
-        String userId = authentication.getName();
+        String userId = authentication != null ? authentication.getName() : xUserId;
+        if (userId == null || userId.isBlank()) {
+            // No authenticated user provided
+            return ResponseEntity.status(401).body(
+                ApiResponse.badRequest("Unauthorized: missing user context")
+            );
+        }
         log.info("Create order request for user: {}", userId);
         
         OrderDto order = orderService.createOrderFromCart(userId, request);
@@ -100,9 +111,15 @@ public class OrderController {
             @Parameter(description = "Page number") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Sort direction") @RequestParam(defaultValue = "desc") String sortDirection,
-            Authentication authentication) {
-        
-        String userId = authentication.getName();
+            Authentication authentication,
+            @RequestHeader(value = "X-User-Id", required = false) String xUserId) {
+
+        String userId = authentication != null ? authentication.getName() : xUserId;
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.status(401).body(
+                ApiResponse.badRequest("Unauthorized: missing user context")
+            );
+        }
         log.info("Get orders for user: {}", userId);
         
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);

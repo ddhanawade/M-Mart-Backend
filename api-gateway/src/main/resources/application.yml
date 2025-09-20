@@ -42,9 +42,11 @@ spring:
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
       globalcors:
+        add-to-simple-url-handler-mapping: true
         corsConfigurations:
           '[/**]':
-            allowedOriginPatterns: "*"
+            allowedOrigins:
+              - "http://localhost:4200"
             allowedMethods: "*"
             allowedHeaders: "*"
             allowCredentials: true
