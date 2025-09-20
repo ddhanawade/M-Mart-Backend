@@ -65,6 +65,7 @@ public class SecurityConfig {
                 // Protected endpoints
                 .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
                 .requestMatchers("/api/users/**").authenticated()
+                .requestMatchers("/api/user-management/**").authenticated()
                 
                 // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

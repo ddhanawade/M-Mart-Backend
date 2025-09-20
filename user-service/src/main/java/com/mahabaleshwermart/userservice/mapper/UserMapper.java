@@ -5,9 +5,9 @@ import com.mahabaleshwermart.userservice.entity.Address;
 import com.mahabaleshwermart.userservice.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * MapStruct mapper for User entity and DTO conversion
@@ -18,8 +18,8 @@ public interface UserMapper {
     /**
      * Convert User entity to UserDto
      */
-    @Mapping(target = "addresses", source = "addresses", qualifiedByName = "mapAddresses")
     @Mapping(target = "isVerified", source = "verified")
+    @Mapping(target = "addresses", expression = "java(mapAddressList(user.getAddresses()))")
     UserDto toDto(User user);
     
     /**
@@ -28,23 +28,22 @@ public interface UserMapper {
     List<UserDto> toDtoList(List<User> users);
     
     /**
-     * Map addresses to AddressDto
+     * Map addresses list to AddressDto list
      */
-    @Named("mapAddresses")
-    default List<UserDto.AddressDto> mapAddresses(List<Address> addresses) {
+    default List<UserDto.AddressDto> mapAddressList(List<Address> addresses) {
         if (addresses == null) {
             return null;
         }
         
         return addresses.stream()
-                .map(this::mapAddress)
-                .toList();
+                .map(this::mapSingleAddress)
+                .collect(Collectors.toList());
     }
     
     /**
      * Map single address to AddressDto
      */
-    default UserDto.AddressDto mapAddress(Address address) {
+    default UserDto.AddressDto mapSingleAddress(Address address) {
         if (address == null) {
             return null;
         }
