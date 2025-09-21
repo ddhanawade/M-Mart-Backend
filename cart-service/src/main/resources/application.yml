@@ -159,3 +159,11 @@ app:
       ttl: 300 # 5 minutes
     product-info:
       ttl: 600 # 10 minutes 
+
+  security:
+    # Allow passing sessionId via signed query parameters (disabled by default)
+    allow-session-id-query-param: false
+    # HMAC secret used to sign sessionId queries (set via env var in dev only)
+    session-id-query-secret: ${SESSION_ID_QUERY_SECRET:}
+    # Max age (in seconds) for signed query params
+    session-id-query-ttl-seconds: 300

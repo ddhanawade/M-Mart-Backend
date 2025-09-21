@@ -13,13 +13,16 @@ import com.mahabaleshwermart.orderservice.external.CartSummaryDto;
 import com.mahabaleshwermart.orderservice.external.CartItemDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -88,6 +91,13 @@ public class OrderService {
         // Save the order with timeline
         order = orderRepository.save(order);
         
+        // Clear user's cart after successful order creation
+        try {
+            cartServiceClient.clearUserCart(userId);
+        } catch (Exception e) {
+            log.warn("Failed to clear cart for user {} after order creation: {}", userId, e.getMessage());
+        }
+
         log.info("Order created successfully: {}", order.getOrderNumber());
         return orderMapper.toDto(order);
     }
@@ -315,10 +325,14 @@ public class OrderService {
         long totalOrders = orderRepository.countByUserId(userId);
         BigDecimal totalSpent = orderRepository.getTotalOrderValueByUser(userId, Order.OrderStatus.CANCELLED);
         
+        BigDecimal average = BigDecimal.ZERO;
+        if (totalOrders > 0) {
+            average = totalSpent.divide(BigDecimal.valueOf(totalOrders), 2, java.math.RoundingMode.HALF_UP);
+        }
         return OrderStatistics.builder()
                 .totalOrders(totalOrders)
                 .totalSpent(totalSpent)
-                .averageOrderValue(totalOrders > 0 ? totalSpent.divide(BigDecimal.valueOf(totalOrders), 2, BigDecimal.ROUND_HALF_UP) : BigDecimal.ZERO)
+                .averageOrderValue(average)
                 .build();
     }
     
@@ -340,27 +354,39 @@ public class OrderService {
         // Fetch and validate user's cart
         CartSummaryDto cartSummary = null;
         try {
+            // First try user cart (should be merged after login)
             cartSummary = cartServiceClient.validateCart(userId);
         } catch (Exception ex) {
-            log.warn("Cart validation failed for user {}. Trying guest session header.", userId, ex);
-            // Attempt guest session validation when user cart appears empty
-            String guestSessionId = org.slf4j.MDC.get("guestSessionId");
+            log.warn("Cart validation error for user {}: {}", userId, ex.getMessage());
+        }
+
+        // If user cart is empty or null, try guest cart using propagated header
+        if (cartSummary == null || cartSummary.items() == null || cartSummary.items().isEmpty()) {
+            String guestSessionId = null;
+            RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+            if (attrs instanceof ServletRequestAttributes servletAttrs) {
+                HttpServletRequest req = servletAttrs.getRequest();
+                guestSessionId = req.getHeader("X-Guest-Session");
+            }
             if (guestSessionId != null && !guestSessionId.isBlank()) {
                 try {
+                    log.info("User cart empty; attempting guest cart for session {}", guestSessionId);
                     cartSummary = cartServiceClient.validateCartGuest(guestSessionId);
                 } catch (Exception e2) {
-                    log.warn("Guest cart validation also failed for session {}", guestSessionId, e2);
-                }
-            }
-            if (cartSummary == null) {
-                try {
-                    cartSummary = cartServiceClient.getUserCart(userId);
-                } catch (Exception e3) {
-                    log.error("Failed to fetch cart for user {}", userId, e3);
-                    throw new BusinessException("Unable to fetch cart for user: " + userId);
+                    log.warn("Guest cart validation failed for session {}: {}", guestSessionId, e2.getMessage());
                 }
             }
         }
+
+        // As a last fallback, try fetching user cart without validation
+        if (cartSummary == null || cartSummary.items() == null || cartSummary.items().isEmpty()) {
+            try {
+                cartSummary = cartServiceClient.getUserCart(userId);
+            } catch (Exception e3) {
+                log.error("Failed to fetch cart for user {}: {}", userId, e3.getMessage(), e3);
+            }
+        }
+
         if (cartSummary == null || cartSummary.items() == null || cartSummary.items().isEmpty()) {
             throw new BusinessException("Cart is empty. Please add items before placing an order.");
         }
@@ -479,6 +505,7 @@ public class OrderService {
     // Helper methods for status mapping
     private OrderTimeline.EventType mapStatusToEventType(Order.OrderStatus status) {
         return switch (status) {
+            case PENDING -> OrderTimeline.EventType.INTERNAL_NOTE;
             case CONFIRMED -> OrderTimeline.EventType.ORDER_CONFIRMED;
             case PROCESSING -> OrderTimeline.EventType.ORDER_PROCESSING;
             case PACKED -> OrderTimeline.EventType.ORDER_PACKED;
@@ -487,7 +514,7 @@ public class OrderService {
             case DELIVERED -> OrderTimeline.EventType.ORDER_DELIVERED;
             case CANCELLED -> OrderTimeline.EventType.ORDER_CANCELLED;
             case RETURNED -> OrderTimeline.EventType.ORDER_RETURNED;
-            default -> OrderTimeline.EventType.INTERNAL_NOTE;
+            case REFUNDED -> OrderTimeline.EventType.INTERNAL_NOTE;
         };
     }
     

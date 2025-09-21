@@ -11,8 +11,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Cart Controller
@@ -27,6 +31,15 @@ public class CartController {
     
     private final CartService cartService;
     
+    @Value("${app.security.allow-session-id-query-param:false}")
+    private boolean allowSessionIdQueryParam;
+    
+    @Value("${app.security.session-id-query-secret:}")
+    private String sessionIdQuerySecret;
+    
+    @Value("${app.security.session-id-query-ttl-seconds:300}")
+    private long sessionIdQueryTtlSeconds;
+    
     /**
      * Get cart summary for authenticated user or guest session
      */
@@ -36,11 +49,24 @@ public class CartController {
             Authentication authentication,
             HttpSession session,
             HttpServletRequest httpRequest,
-            @RequestParam(value = "userId", required = false) String userIdParam) {
-        String userId = userIdParam != null && !userIdParam.isBlank()
-                ? userIdParam
-                : (authentication != null ? authentication.getName() : null);
+            @RequestParam(value = "userId", required = false) String userIdParam,
+            @RequestParam(value = "sessionId", required = false) String sessionIdQuery,
+            @RequestParam(value = "ts", required = false) Long timestamp,
+            @RequestParam(value = "sig", required = false) String signature) {
+        String headerUserId = httpRequest.getHeader("X-User-Id");
+        String userId = headerUserId != null && !headerUserId.isBlank()
+                ? headerUserId
+                : (userIdParam != null && !userIdParam.isBlank()
+                    ? userIdParam
+                    : (authentication != null ? authentication.getName() : null));
         String headerSessionId = httpRequest.getHeader("X-Guest-Session");
+        
+        // Optionally allow secure sessionId via query params (HMAC + TTL)
+        if (headerSessionId == null && userId == null && allowSessionIdQueryParam && sessionIdQuery != null && timestamp != null && signature != null) {
+            if (isValidSignedSessionId(sessionIdQuery, timestamp, signature)) {
+                headerSessionId = sessionIdQuery;
+            }
+        }
         CartSummaryDto cart;
         if (userId != null) {
             log.info("Get cart request for user: {}", userId);
@@ -63,6 +89,51 @@ public class CartController {
         log.info("Get cart request for user: {}", userId);
         CartSummaryDto cart = cartService.getUserCart(userId);
         return ResponseEntity.ok(ApiResponse.success(cart, "Cart retrieved successfully"));
+    }
+
+    private boolean isValidSignedSessionId(String sessionId, long timestamp, String signature) {
+        try {
+            if (sessionIdQuerySecret == null || sessionIdQuerySecret.isBlank()) {
+                log.warn("SessionId query secret not configured; rejecting signed sessionId");
+                return false;
+            }
+            long now = System.currentTimeMillis() / 1000L;
+            if (Math.abs(now - timestamp) > sessionIdQueryTtlSeconds) {
+                log.warn("Signed sessionId expired or too far in future");
+                return false;
+            }
+            String data = sessionId + ":" + timestamp;
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(sessionIdQuerySecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            String expected = bytesToHex(raw);
+            boolean match = constantTimeEquals(expected, signature);
+            if (!match) {
+                log.warn("Invalid signature for signed sessionId");
+            }
+            return match;
+        } catch (Exception e) {
+            log.error("Error validating signed sessionId", e);
+            return false;
+        }
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    private static boolean constantTimeEquals(String a, String b) {
+        if (a == null || b == null) return false;
+        if (a.length() != b.length()) return false;
+        int result = 0;
+        for (int i = 0; i < a.length(); i++) {
+            result |= a.charAt(i) ^ b.charAt(i);
+        }
+        return result == 0;
     }
     
     /**
@@ -151,10 +222,13 @@ public class CartController {
             HttpServletRequest httpRequest,
             @RequestParam(value = "userId", required = false) String userIdParam) {
         String headerSessionId = httpRequest.getHeader("X-Guest-Session");
+        String headerUserId = httpRequest.getHeader("X-User-Id");
         
-        String userId = userIdParam != null && !userIdParam.isBlank()
-                ? userIdParam
-                : (authentication != null ? authentication.getName() : null);
+        String userId = headerUserId != null && !headerUserId.isBlank()
+                ? headerUserId
+                : (userIdParam != null && !userIdParam.isBlank()
+                    ? userIdParam
+                    : (authentication != null ? authentication.getName() : null));
         
         if (userId != null) {
             log.info("Clearing cart for user: {}", userId);
@@ -202,16 +276,32 @@ public class CartController {
     @Operation(summary = "Transfer guest cart", description = "Transfer guest cart to user account on login")
     public ResponseEntity<ApiResponse<CartSummaryDto>> transferGuestCart(
             @Valid @RequestBody MoveCartRequest request,
-            Authentication authentication) {
-        
-        String userId = authentication != null ? authentication.getName() : request.getUserId();
-        
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
+        String headerUserId = httpRequest.getHeader("X-User-Id");
+        String userId = headerUserId != null && !headerUserId.isBlank()
+                ? headerUserId
+                : (authentication != null ? authentication.getName() : request.getUserId());
+
         log.info("Transferring cart from session {} to user {}", request.getSessionId(), userId);
+
+        if (request.getSessionId() == null || request.getSessionId().isBlank()) {
+            log.warn("Transfer request missing sessionId");
+            return ResponseEntity.badRequest().body(ApiResponse.badRequest("Session ID is required"));
+        }
+        if (userId == null || userId.isBlank()) {
+            log.warn("Transfer request missing userId");
+            return ResponseEntity.badRequest().body(ApiResponse.badRequest("User ID is required"));
+        }
         
-        CartSummaryDto cart = cartService.transferGuestCartToUser(
-            request.getSessionId(), userId, request.isMergeWithExisting());
-        
-        return ResponseEntity.ok(ApiResponse.success(cart, "Cart transferred successfully"));
+        try {
+            CartSummaryDto cart = cartService.transferGuestCartToUser(
+                request.getSessionId(), userId, request.isMergeWithExisting());
+            return ResponseEntity.ok(ApiResponse.success(cart, "Cart transferred successfully"));
+        } catch (Exception ex) {
+            log.error("Cart transfer failed for user {} and session {}: {}", userId, request.getSessionId(), ex.getMessage(), ex);
+            return ResponseEntity.internalServerError().body(ApiResponse.internalServerError("Failed to transfer cart"));
+        }
     }
     
     /**
@@ -225,10 +315,13 @@ public class CartController {
             HttpServletRequest httpRequest,
             @RequestParam(value = "userId", required = false) String userIdParam) {
         String headerSessionId = httpRequest.getHeader("X-Guest-Session");
+        String headerUserId = httpRequest.getHeader("X-User-Id");
         
-        String userId = userIdParam != null && !userIdParam.isBlank()
-                ? userIdParam
-                : (authentication != null ? authentication.getName() : null);
+        String userId = headerUserId != null && !headerUserId.isBlank()
+                ? headerUserId
+                : (userIdParam != null && !userIdParam.isBlank()
+                    ? userIdParam
+                    : (authentication != null ? authentication.getName() : null));
         String sessionId = userId == null ? ((headerSessionId != null && !headerSessionId.isBlank()) ? headerSessionId : session.getId()) : null;
         
         log.info("Validating cart for user: {} or session: {}", userId, sessionId);
