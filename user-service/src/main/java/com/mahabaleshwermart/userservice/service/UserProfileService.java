@@ -126,6 +126,15 @@ public class UserProfileService {
         return userMapper.toDto(saved);
     }
 
+    /**
+     * Get user by ID for internal service calls
+     */
+    public UserDto getUserById(String userId) {
+        User user = userRepository.findByIdWithAddresses(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        return userMapper.toDto(user);
+    }
+
     private Address.AddressType parseType(String type) {
         if (type == null) return Address.AddressType.HOME;
         String t = type.toUpperCase(Locale.ROOT);

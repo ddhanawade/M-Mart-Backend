@@ -304,6 +304,11 @@ services:
       - RABBITMQ_HOST=mahabaleshwer-rabbitmq
       - RABBITMQ_USERNAME=admin
       - RABBITMQ_PASSWORD=admin123
+      # Email Configuration - Temporarily disabled until App Password is set up
+      - EMAIL_ENABLED=true
+      - MAIL_USERNAME=ddhanawade804@gmail.com
+      - MAIL_PASSWORD=Ded12jky@20272029
+      - EMAIL_FROM=noreply@mahabaleshwermart.com
     depends_on:
       config-server:
         condition: service_started

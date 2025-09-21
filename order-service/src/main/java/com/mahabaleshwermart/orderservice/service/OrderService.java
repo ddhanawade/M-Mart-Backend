@@ -3,6 +3,7 @@ package com.mahabaleshwermart.orderservice.service;
 import com.mahabaleshwermart.common.dto.PageResponse;
 import com.mahabaleshwermart.common.exception.BusinessException;
 import com.mahabaleshwermart.common.exception.ResourceNotFoundException;
+import com.mahabaleshwermart.orderservice.dto.ApiResponse;
 import com.mahabaleshwermart.orderservice.dto.OrderDto;
 import com.mahabaleshwermart.orderservice.entity.*;
 import com.mahabaleshwermart.orderservice.dto.CreateOrderRequest;
@@ -11,6 +12,8 @@ import com.mahabaleshwermart.orderservice.repository.OrderRepository;
 import com.mahabaleshwermart.orderservice.external.CartServiceClient;
 import com.mahabaleshwermart.orderservice.external.CartSummaryDto;
 import com.mahabaleshwermart.orderservice.external.CartItemDto;
+import com.mahabaleshwermart.orderservice.external.UserServiceClient;
+import com.mahabaleshwermart.orderservice.external.UserDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -42,6 +45,7 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final NotificationService notificationService;
     private final CartServiceClient cartServiceClient;
+    private final UserServiceClient userServiceClient;
     
     private static final BigDecimal TAX_RATE = BigDecimal.valueOf(0.18); // 18% GST
     private static final BigDecimal FREE_DELIVERY_THRESHOLD = BigDecimal.valueOf(500);
@@ -341,21 +345,47 @@ public class OrderService {
     private Order createSimplifiedOrder(String userId, CreateOrderRequest request) {
         log.info("Creating simplified order for user: {}", userId);
         
+        // Fetch user profile information from user service
+        UserDto userProfile = null;
+        try {
+            ApiResponse<UserDto> userResponse = userServiceClient.getUserById(userId);
+            if (userResponse != null && userResponse.isSuccess() && userResponse.getData() != null) {
+                userProfile = userResponse.getData();
+                log.info("Successfully fetched user profile for user: {}: {}", userId, userProfile);
+            } else {
+                log.warn("User service returned empty or unsuccessful response for user: {}", userId);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch user profile for user: {}. Error: {}", userId, e.getMessage());
+        }
+        
         // Resolve user details from request if available
         OrderAddress deliveryAddress = orderMapper.toOrderAddress(request.getDeliveryAddress());
-        String resolvedUserName = deliveryAddress != null && deliveryAddress.getContactName() != null
-                ? deliveryAddress.getContactName()
-                : userId;
-        String resolvedUserPhone = deliveryAddress != null ? deliveryAddress.getContactPhone() : null;
-        String resolvedUserEmail = (userId != null && userId.contains("@"))
-                ? userId
-                : (resolvedUserName != null ? resolvedUserName.toLowerCase().replaceAll("\\s+", ".") : "user") + "@unknown.local";
+        // Use user profile data if available, otherwise fall back to delivery address or defaults
+        String resolvedUserName = userProfile != null && userProfile.name() != null
+                ? userProfile.name()
+                : (deliveryAddress != null && deliveryAddress.getContactName() != null
+                    ? deliveryAddress.getContactName()
+                    : userId);
+        String resolvedUserPhone = userProfile != null && userProfile.phone() != null
+                ? userProfile.phone()
+                : (deliveryAddress != null ? deliveryAddress.getContactPhone() : null);
+        String resolvedUserEmail = userProfile != null && userProfile.email() != null
+                ? userProfile.email()
+                : ((userId != null && userId.contains("@"))
+                    ? userId
+                    : (resolvedUserName != null ? resolvedUserName.toLowerCase().replaceAll("\\s+", ".") : "user") + "@unknown.local");
         
         // Fetch and validate user's cart
         CartSummaryDto cartSummary = null;
         try {
             // First try user cart (should be merged after login)
-            cartSummary = cartServiceClient.validateCart(userId);
+            ApiResponse<CartSummaryDto> cartResponse = cartServiceClient.validateCart(userId);
+            if (cartResponse != null && cartResponse.isSuccess()) {
+                cartSummary = cartResponse.getData();
+                log.info("Cart validation successful for user {}: {} items", userId, 
+                        cartSummary != null && cartSummary.items() != null ? cartSummary.items().size() : 0);
+            }
         } catch (Exception ex) {
             log.warn("Cart validation error for user {}: {}", userId, ex.getMessage());
         }
@@ -371,7 +401,10 @@ public class OrderService {
             if (guestSessionId != null && !guestSessionId.isBlank()) {
                 try {
                     log.info("User cart empty; attempting guest cart for session {}", guestSessionId);
-                    cartSummary = cartServiceClient.validateCartGuest(guestSessionId, "true");
+                    ApiResponse<CartSummaryDto> guestCartResponse = cartServiceClient.validateCartGuest(guestSessionId, "true");
+                    if (guestCartResponse != null && guestCartResponse.isSuccess()) {
+                        cartSummary = guestCartResponse.getData();
+                    }
                 } catch (Exception e2) {
                     log.warn("Guest cart validation failed for session {}: {}", guestSessionId, e2.getMessage());
                 }
@@ -381,7 +414,10 @@ public class OrderService {
         // As a last fallback, try fetching user cart without validation
         if (cartSummary == null || cartSummary.items() == null || cartSummary.items().isEmpty()) {
             try {
-                cartSummary = cartServiceClient.getUserCart(userId);
+                ApiResponse<CartSummaryDto> cartResponse = cartServiceClient.getUserCart(userId);
+                if (cartResponse != null && cartResponse.isSuccess()) {
+                    cartSummary = cartResponse.getData();
+                }
             } catch (Exception e3) {
                 log.error("Failed to fetch cart for user {}: {}", userId, e3.getMessage(), e3);
             }

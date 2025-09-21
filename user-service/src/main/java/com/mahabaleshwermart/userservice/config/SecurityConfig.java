@@ -62,6 +62,9 @@ public class SecurityConfig {
                     "/error"
                 ).permitAll()
                 
+                // Internal service endpoints (no authentication required)
+                .requestMatchers("/api/internal/users/**").permitAll()
+                
                 // Protected endpoints
                 .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
                 .requestMatchers("/api/users/**").authenticated()
