@@ -8,6 +8,9 @@ import com.mahabaleshwermart.orderservice.entity.*;
 import com.mahabaleshwermart.orderservice.dto.CreateOrderRequest;
 import com.mahabaleshwermart.orderservice.mapper.OrderMapper;
 import com.mahabaleshwermart.orderservice.repository.OrderRepository;
+import com.mahabaleshwermart.orderservice.external.CartServiceClient;
+import com.mahabaleshwermart.orderservice.external.CartSummaryDto;
+import com.mahabaleshwermart.orderservice.external.CartItemDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -34,6 +37,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
     private final NotificationService notificationService;
+    private final CartServiceClient cartServiceClient;
     
     private static final BigDecimal TAX_RATE = BigDecimal.valueOf(0.18); // 18% GST
     private static final BigDecimal FREE_DELIVERY_THRESHOLD = BigDecimal.valueOf(500);
@@ -92,7 +96,7 @@ public class OrderService {
      */
     @Transactional
     public OrderDto createSimplifiedOrderPublic(CreateOrderRequest request) {
-        log.info("Creating simplified order with mock data");
+        log.info("Creating simplified order using dynamic data");
         
         // Use a default user ID for simplified orders
         String defaultUserId = "test-user-123";
@@ -322,65 +326,75 @@ public class OrderService {
     private Order createSimplifiedOrder(String userId, CreateOrderRequest request) {
         log.info("Creating simplified order for user: {}", userId);
         
-        // Create order with mock data
-        Order.OrderBuilder orderBuilder = Order.builder()
-                .userId(userId)
-                .userName("Test User")
-                .userEmail("test@example.com")
-                .userPhone("1234567890")
-                .specialInstructions(request.getSpecialInstructions());
-        
-        // Set delivery address
+        // Resolve user details from request if available
         OrderAddress deliveryAddress = orderMapper.toOrderAddress(request.getDeliveryAddress());
-        orderBuilder.deliveryAddress(deliveryAddress);
+        String resolvedUserName = deliveryAddress != null && deliveryAddress.getContactName() != null
+                ? deliveryAddress.getContactName()
+                : userId;
+        String resolvedUserPhone = deliveryAddress != null ? deliveryAddress.getContactPhone() : null;
+        String resolvedUserEmail = (userId != null && userId.contains("@"))
+                ? userId
+                : (resolvedUserName != null ? resolvedUserName.toLowerCase().replaceAll("\\s+", ".") : "user") + "@unknown.local";
         
-        // Set payment information
+        // Fetch and validate user's cart
+        CartSummaryDto cartSummary;
+        try {
+            cartSummary = cartServiceClient.validateCart(userId);
+        } catch (Exception ex) {
+            log.warn("Cart validation failed for user {}. Falling back to fetching cart.", userId, ex);
+            try {
+                cartSummary = cartServiceClient.getUserCart(userId);
+            } catch (Exception e2) {
+                log.error("Failed to fetch cart for user {}", userId, e2);
+                throw new BusinessException("Unable to fetch cart for user: " + userId);
+            }
+        }
+        if (cartSummary == null || cartSummary.items() == null || cartSummary.items().isEmpty()) {
+            throw new BusinessException("Cart is empty. Please add items before placing an order.");
+        }
+        
+        // Compute amounts dynamically
+        BigDecimal subtotal = cartSummary.subtotal() != null ? cartSummary.subtotal() : BigDecimal.ZERO;
+        BigDecimal discountAmount = cartSummary.totalSavings() != null ? cartSummary.totalSavings() : BigDecimal.ZERO;
+        BigDecimal taxableBase = subtotal.subtract(discountAmount);
+        if (taxableBase.compareTo(BigDecimal.ZERO) < 0) taxableBase = BigDecimal.ZERO;
+        BigDecimal taxAmount = taxableBase.multiply(TAX_RATE);
+        BigDecimal deliveryCharge = subtotal.compareTo(FREE_DELIVERY_THRESHOLD) >= 0 ? BigDecimal.ZERO : STANDARD_DELIVERY_CHARGE;
+        int totalItems = cartSummary.totalItems();
+        int totalQuantity = cartSummary.totalQuantity();
+        
+        // Payment
         OrderPayment payment = orderMapper.toOrderPayment(request.getPayment());
-        orderBuilder.payment(payment);
         
-        // Calculate amounts with mock data
-        BigDecimal subtotal = new BigDecimal("299.99");
-        BigDecimal discountAmount = new BigDecimal("50.00");
-        BigDecimal taxAmount = subtotal.multiply(TAX_RATE);
-        BigDecimal deliveryCharge = STANDARD_DELIVERY_CHARGE;
-        
-        orderBuilder
+        // Build order
+        Order order = Order.builder()
+                .userId(userId)
+                .userName(resolvedUserName)
+                .userEmail(resolvedUserEmail)
+                .userPhone(resolvedUserPhone)
+                .specialInstructions(request.getSpecialInstructions())
+                .deliveryAddress(deliveryAddress)
+                .payment(payment)
                 .subtotal(subtotal)
                 .taxAmount(taxAmount)
                 .deliveryCharge(deliveryCharge)
                 .discountAmount(discountAmount)
-                .totalItems(1)
-                .totalQuantity(2);
+                .totalItems(totalItems)
+                .totalQuantity(totalQuantity)
+                .build();
         
-        Order order = orderBuilder.build();
-        
-        // Initialize timeline list
+        // Initialize timeline
         order.setTimeline(new ArrayList<>());
         
-        // Create mock order items
+        // Map cart items → order items
         List<OrderItem> orderItems = new ArrayList<>();
-        OrderItem orderItem = OrderItem.builder()
-                .order(order)
-                .productId("mock-product-001")
-                .productName("Sample Product")
-                .productImage("https://example.com/images/sample.jpg")
-                .productSku("SAMPLE-SKU-001")
-                .productCategory("GROCERIES")
-                .productUnit("piece")
-                .quantity(2)
-                .unitPrice(new BigDecimal("149.99"))
-                .originalPrice(new BigDecimal("174.99"))
-                .totalPrice(new BigDecimal("299.98"))
-                .discountAmount(new BigDecimal("50.00"))
-                .organic(false)
-                .fresh(true)
-                .itemStatus(OrderItem.ItemStatus.CONFIRMED)
-                .build();
-        orderItems.add(orderItem);
+        for (CartItemDto ci : cartSummary.items()) {
+            orderItems.add(orderMapper.toOrderItem(ci, order));
+        }
         order.setItems(orderItems);
         
-        log.info("Created order with {} items, total amount: {}", orderItems.size(), 
-                order.getSubtotal().add(order.getTaxAmount()).add(order.getDeliveryCharge()).subtract(order.getDiscountAmount()));
+        log.info("Created order with {} items. Subtotal: {}, Tax: {}, Delivery: {}, Discount: {}",
+                orderItems.size(), subtotal, taxAmount, deliveryCharge, discountAmount);
         
         return order;
     }

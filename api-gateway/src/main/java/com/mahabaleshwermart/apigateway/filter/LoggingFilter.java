@@ -1,6 +1,7 @@
 package com.mahabaleshwermart.apigateway.filter;
 
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -28,6 +29,15 @@ public class LoggingFilter extends AbstractGatewayFilterFactory<LoggingFilter.Co
             ServerHttpRequest request = exchange.getRequest();
             ServerHttpResponse response = exchange.getResponse();
 
+            String existingCorrelationId = request.getHeaders().getFirst("X-Correlation-Id");
+            String correlationId = existingCorrelationId != null && !existingCorrelationId.isBlank()
+                    ? existingCorrelationId
+                    : java.util.UUID.randomUUID().toString();
+            // Put in MDC for gateway logs and propagate downstream
+            MDC.put("correlationId", correlationId);
+            exchange.getResponse().getHeaders().set("X-Correlation-Id", correlationId);
+            exchange.getRequest().mutate().headers(h -> h.set("X-Correlation-Id", correlationId)).build();
+
             long startTime = System.currentTimeMillis();
 
             log.info("Incoming request: {} {} from {}",
@@ -43,6 +53,7 @@ public class LoggingFilter extends AbstractGatewayFilterFactory<LoggingFilter.Co
                         request.getURI(),
                         response.getStatusCode(),
                         duration);
+                    MDC.remove("correlationId");
                 })
             );
         };

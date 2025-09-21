@@ -66,8 +66,15 @@ logging:
   level:
     com.mahabaleshwermart: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{correlationId}] [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%X{correlationId}] [%thread] %-5level %logger{36} - %msg%n"
+  http:
+    enabled: true
+    log-headers: true
+    log-request-body: true
+    log-response-body: false
+    max-payload-length: 4096
+    include-client-ip: true
 
 # OpenAPI Documentation
 springdoc:

@@ -32,11 +32,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/actuator/**", "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
                 .requestMatchers("/api/orders/health").permitAll()
+                .requestMatchers("/api/orders/simplified").permitAll()
                 .requestMatchers("/api/orders/track/**").permitAll()
                 .requestMatchers("/api/orders/number/**").permitAll()
                 
-                // API endpoints - explicitly match to prevent static resource handler
-                .requestMatchers("/api/orders/**").permitAll()
+                // Protected endpoints - require authentication
+                .requestMatchers("/api/orders/**").authenticated()
                 
                 // All other requests
                 .anyRequest().permitAll()
