@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 /**
  * MapStruct mapper for User entity and DTO conversion
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", imports = {com.mahabaleshwermart.userservice.entity.User.class, com.mahabaleshwermart.userservice.entity.Address.class})
 public interface UserMapper {
     
     /**

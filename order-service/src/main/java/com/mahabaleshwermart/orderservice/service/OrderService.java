@@ -13,6 +13,7 @@ import com.mahabaleshwermart.orderservice.external.CartSummaryDto;
 import com.mahabaleshwermart.orderservice.external.CartItemDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -337,16 +338,27 @@ public class OrderService {
                 : (resolvedUserName != null ? resolvedUserName.toLowerCase().replaceAll("\\s+", ".") : "user") + "@unknown.local";
         
         // Fetch and validate user's cart
-        CartSummaryDto cartSummary;
+        CartSummaryDto cartSummary = null;
         try {
             cartSummary = cartServiceClient.validateCart(userId);
         } catch (Exception ex) {
-            log.warn("Cart validation failed for user {}. Falling back to fetching cart.", userId, ex);
-            try {
-                cartSummary = cartServiceClient.getUserCart(userId);
-            } catch (Exception e2) {
-                log.error("Failed to fetch cart for user {}", userId, e2);
-                throw new BusinessException("Unable to fetch cart for user: " + userId);
+            log.warn("Cart validation failed for user {}. Trying guest session header.", userId, ex);
+            // Attempt guest session validation when user cart appears empty
+            String guestSessionId = org.slf4j.MDC.get("guestSessionId");
+            if (guestSessionId != null && !guestSessionId.isBlank()) {
+                try {
+                    cartSummary = cartServiceClient.validateCartGuest(guestSessionId);
+                } catch (Exception e2) {
+                    log.warn("Guest cart validation also failed for session {}", guestSessionId, e2);
+                }
+            }
+            if (cartSummary == null) {
+                try {
+                    cartSummary = cartServiceClient.getUserCart(userId);
+                } catch (Exception e3) {
+                    log.error("Failed to fetch cart for user {}", userId, e3);
+                    throw new BusinessException("Unable to fetch cart for user: " + userId);
+                }
             }
         }
         if (cartSummary == null || cartSummary.items() == null || cartSummary.items().isEmpty()) {

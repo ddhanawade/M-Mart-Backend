@@ -35,8 +35,11 @@ public class CartController {
     public ResponseEntity<ApiResponse<CartSummaryDto>> getUserCart(
             Authentication authentication,
             HttpSession session,
-            HttpServletRequest httpRequest) {
-        String userId = authentication != null ? authentication.getName() : null;
+            HttpServletRequest httpRequest,
+            @RequestParam(value = "userId", required = false) String userIdParam) {
+        String userId = userIdParam != null && !userIdParam.isBlank()
+                ? userIdParam
+                : (authentication != null ? authentication.getName() : null);
         String headerSessionId = httpRequest.getHeader("X-Guest-Session");
         CartSummaryDto cart;
         if (userId != null) {
@@ -87,9 +90,12 @@ public class CartController {
             HttpSession session,
             HttpServletRequest httpRequest) {
         String headerSessionId = httpRequest.getHeader("X-Guest-Session");
+        String headerUserId = httpRequest.getHeader("X-User-Id");
         
         // Priority: 1. Authentication, 2. UserId from request body, 3. Guest session
-        String userId = authentication != null ? authentication.getName() : request.getUserId();
+        String userId = headerUserId != null && !headerUserId.isBlank()
+                ? headerUserId
+                : (authentication != null ? authentication.getName() : request.getUserId());
         
         CartItemDto cartItem;
         if (userId != null && !userId.trim().isEmpty()) {
@@ -142,10 +148,13 @@ public class CartController {
     public ResponseEntity<ApiResponse<String>> clearCart(
             Authentication authentication,
             HttpSession session,
-            HttpServletRequest httpRequest) {
+            HttpServletRequest httpRequest,
+            @RequestParam(value = "userId", required = false) String userIdParam) {
         String headerSessionId = httpRequest.getHeader("X-Guest-Session");
         
-        String userId = authentication != null ? authentication.getName() : null;
+        String userId = userIdParam != null && !userIdParam.isBlank()
+                ? userIdParam
+                : (authentication != null ? authentication.getName() : null);
         
         if (userId != null) {
             log.info("Clearing cart for user: {}", userId);
@@ -169,8 +178,11 @@ public class CartController {
             HttpSession session,
             HttpServletRequest httpRequest) {
         String headerSessionId = httpRequest.getHeader("X-Guest-Session");
+        String headerUserId = httpRequest.getHeader("X-User-Id");
         
-        String userId = authentication != null ? authentication.getName() : null;
+        String userId = headerUserId != null && !headerUserId.isBlank()
+                ? headerUserId
+                : (authentication != null ? authentication.getName() : null);
         
         int count;
         if (userId != null) {
@@ -210,10 +222,13 @@ public class CartController {
     public ResponseEntity<ApiResponse<CartSummaryDto>> validateCart(
             Authentication authentication,
             HttpSession session,
-            HttpServletRequest httpRequest) {
+            HttpServletRequest httpRequest,
+            @RequestParam(value = "userId", required = false) String userIdParam) {
         String headerSessionId = httpRequest.getHeader("X-Guest-Session");
         
-        String userId = authentication != null ? authentication.getName() : null;
+        String userId = userIdParam != null && !userIdParam.isBlank()
+                ? userIdParam
+                : (authentication != null ? authentication.getName() : null);
         String sessionId = userId == null ? ((headerSessionId != null && !headerSessionId.isBlank()) ? headerSessionId : session.getId()) : null;
         
         log.info("Validating cart for user: {} or session: {}", userId, sessionId);

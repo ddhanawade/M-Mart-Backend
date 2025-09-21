@@ -4,6 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
@@ -23,6 +24,12 @@ public interface CartServiceClient {
      */
     @PostMapping("/api/cart/validate")
     CartSummaryDto validateCart(@RequestParam("userId") String userId);
+    
+    /**
+     * Validate cart for guest session via header propagation
+     */
+    @PostMapping("/api/cart/validate")
+    CartSummaryDto validateCartGuest(@RequestHeader("X-Guest-Session") String guestSessionId);
     
     /**
      * Clear user cart
