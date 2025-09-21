@@ -100,9 +100,14 @@ public class AuthController {
     @Operation(summary = "Get current user", description = "Get current authenticated user profile")
     public ResponseEntity<ApiResponse<UserDto>> getCurrentUser(Authentication authentication) {
         log.info("Get current user request");
-        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(
+                ApiResponse.unauthorized("Unauthorized: missing or invalid token")
+            );
+        }
+
         UserDto user = authService.getCurrentUser(authentication.getName());
-        
+
         return ResponseEntity.ok(
             ApiResponse.success(user, "User profile retrieved successfully")
         );

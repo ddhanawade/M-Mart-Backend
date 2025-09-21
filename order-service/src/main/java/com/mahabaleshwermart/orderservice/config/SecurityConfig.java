@@ -35,9 +35,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/orders/simplified").permitAll()
                 .requestMatchers("/api/orders/track/**").permitAll()
                 .requestMatchers("/api/orders/number/**").permitAll()
-                
-                // Protected endpoints - require authentication
-                .requestMatchers("/api/orders/**").authenticated()
+                // Allow controller-level checks for orders; gateway enforces JWT for external access
+                .requestMatchers("/api/orders/**").permitAll()
                 
                 // All other requests
                 .anyRequest().permitAll()

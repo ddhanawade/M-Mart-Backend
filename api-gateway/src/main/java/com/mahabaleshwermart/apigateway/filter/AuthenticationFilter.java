@@ -8,6 +8,7 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -28,17 +29,25 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Autowired
     private JwtService jwtService;
 
-    // Routes that don't require authentication
-    private static final List<String> OPEN_API_ENDPOINTS = List.of(
-        "/api/v1/auth/login",
-        "/api/v1/auth/register",
-        "/api/v1/auth/refresh",
-        "/api/v1/products/public",
-        "/api/v1/categories/public",
-        "/actuator/health",
-        "/actuator/info",
+    // Route prefixes that don't require authentication (discovery-based paths)
+    private static final List<String> OPEN_API_PREFIXES = List.of(
+        // User service public auth APIs
+        "/user-service/api/auth",
+        // Product catalog is public
+        "/product-service/api/products",
+        // Cart guest/user endpoints should be accessible without JWT (session/guest handled downstream)
+        "/cart-service/api/cart",
+        // Actuator and docs for all services
+        "/user-service/actuator",
+        "/product-service/actuator",
+        "/cart-service/actuator",
+        "/order-service/actuator",
+        "/notification-service/actuator",
+        "/api-gateway/actuator",
+        "/v3/api-docs",
         "/swagger-ui",
-        "/v3/api-docs"
+        "/swagger-ui.html",
+        "/actuator"
     );
 
     public AuthenticationFilter() {
@@ -53,9 +62,32 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
             log.debug("Processing request for path: {}", path);
 
-            // Skip authentication for open endpoints
+            // Always allow CORS preflight
+            if (request.getMethod() == HttpMethod.OPTIONS) {
+                return chain.filter(exchange);
+            }
+
+            // For open endpoints: if Authorization present and valid, decorate with user headers; never block
             if (isOpenEndpoint(path)) {
-                log.debug("Skipping authentication for open endpoint: {}", path);
+                String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    String token = authHeader.substring(7);
+                    try {
+                        if (jwtService.validateToken(token)) {
+                            String userId = jwtService.extractUserId(token);
+                            String username = jwtService.extractUsername(token);
+                            String roles = jwtService.extractRoles(token);
+                            ServerHttpRequest decorated = request.mutate()
+                                .header("X-User-Id", userId)
+                                .header("X-Username", username)
+                                .header("X-User-Roles", roles)
+                                .build();
+                            return chain.filter(exchange.mutate().request(decorated).build());
+                        }
+                    } catch (Exception e) {
+                        log.debug("Open endpoint auth decoration skipped due to token error: {}", e.getMessage());
+                    }
+                }
                 return chain.filter(exchange);
             }
 
@@ -107,8 +139,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     }
 
     private boolean isOpenEndpoint(String path) {
-        return OPEN_API_ENDPOINTS.stream()
-            .anyMatch(endpoint -> path.startsWith(endpoint) || path.contains(endpoint));
+        return OPEN_API_PREFIXES.stream().anyMatch(path::startsWith);
     }
 
     private Mono<Void> onError(ServerWebExchange exchange, String message, HttpStatus status) {
