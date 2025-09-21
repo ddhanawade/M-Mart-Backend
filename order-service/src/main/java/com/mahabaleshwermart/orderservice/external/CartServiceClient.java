@@ -29,11 +29,18 @@ public interface CartServiceClient {
      * Validate cart for guest session via header propagation
      */
     @PostMapping("/api/cart/validate")
-    CartSummaryDto validateCartGuest(@RequestHeader("X-Guest-Session") String guestSessionId);
+    CartSummaryDto validateCartGuest(@RequestHeader("X-Guest-Session") String guestSessionId,
+                                     @RequestHeader("X-Force-Guest") String forceGuest);
     
     /**
      * Clear user cart
      */
     @DeleteMapping("/api/cart/clear")
     void clearUserCart(@RequestParam("userId") String userId);
+
+    /**
+     * Clear guest cart by session header
+     */
+    @DeleteMapping("/api/cart/clear")
+    void clearGuestCart(@RequestHeader("X-Guest-Session") String guestSessionId);
 }

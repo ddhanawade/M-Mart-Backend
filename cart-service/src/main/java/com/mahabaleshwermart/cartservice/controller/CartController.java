@@ -316,13 +316,20 @@ public class CartController {
             @RequestParam(value = "userId", required = false) String userIdParam) {
         String headerSessionId = httpRequest.getHeader("X-Guest-Session");
         String headerUserId = httpRequest.getHeader("X-User-Id");
-        
-        String userId = headerUserId != null && !headerUserId.isBlank()
-                ? headerUserId
-                : (userIdParam != null && !userIdParam.isBlank()
-                    ? userIdParam
-                    : (authentication != null ? authentication.getName() : null));
-        String sessionId = userId == null ? ((headerSessionId != null && !headerSessionId.isBlank()) ? headerSessionId : session.getId()) : null;
+        String forceGuest = httpRequest.getHeader("X-Force-Guest");
+
+        // If explicitly forced to use guest session, ignore any user identity for this validation
+        String userId = (forceGuest != null && forceGuest.equalsIgnoreCase("true"))
+                ? null
+                : (headerUserId != null && !headerUserId.isBlank()
+                    ? headerUserId
+                    : (userIdParam != null && !userIdParam.isBlank()
+                        ? userIdParam
+                        : (authentication != null ? authentication.getName() : null)));
+
+        String sessionId = userId == null
+                ? ((headerSessionId != null && !headerSessionId.isBlank()) ? headerSessionId : session.getId())
+                : null;
         
         log.info("Validating cart for user: {} or session: {}", userId, sessionId);
         

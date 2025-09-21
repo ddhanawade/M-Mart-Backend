@@ -371,7 +371,7 @@ public class OrderService {
             if (guestSessionId != null && !guestSessionId.isBlank()) {
                 try {
                     log.info("User cart empty; attempting guest cart for session {}", guestSessionId);
-                    cartSummary = cartServiceClient.validateCartGuest(guestSessionId);
+                    cartSummary = cartServiceClient.validateCartGuest(guestSessionId, "true");
                 } catch (Exception e2) {
                     log.warn("Guest cart validation failed for session {}: {}", guestSessionId, e2.getMessage());
                 }
@@ -388,6 +388,16 @@ public class OrderService {
         }
 
         if (cartSummary == null || cartSummary.items() == null || cartSummary.items().isEmpty()) {
+            // If guest session exists, fail over by clearing stale guest cart reference
+            RequestAttributes attrs2 = RequestContextHolder.getRequestAttributes();
+            if (attrs2 instanceof ServletRequestAttributes servletAttrs2) {
+                String guestSessionId2 = servletAttrs2.getRequest().getHeader("X-Guest-Session");
+                if (guestSessionId2 != null && !guestSessionId2.isBlank()) {
+                    try {
+                        cartServiceClient.clearGuestCart(guestSessionId2);
+                    } catch (Exception ignore) {}
+                }
+            }
             throw new BusinessException("Cart is empty. Please add items before placing an order.");
         }
         
