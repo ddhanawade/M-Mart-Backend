@@ -304,11 +304,14 @@ services:
       - RABBITMQ_HOST=mahabaleshwer-rabbitmq
       - RABBITMQ_USERNAME=admin
       - RABBITMQ_PASSWORD=admin123
-      # Email Configuration - Temporarily disabled until App Password is set up
+      # Email Configuration (Mailtrap for dev)
       - EMAIL_ENABLED=true
-      - MAIL_USERNAME=ddhanawade804@gmail.com
-      - MAIL_PASSWORD=Ded12jky@20272029
-      - EMAIL_FROM=noreply@mahabaleshwermart.com
+      - MAIL_HOST=sandbox.smtp.mailtrap.io
+      - MAIL_PORT=587
+      - MAIL_USERNAME=${MAILTRAP_USERNAME}
+      - MAIL_PASSWORD=${MAILTRAP_PASSWORD}
+      - EMAIL_FROM=no-reply@mahabaleshwermart.test
+      - MAIL_DEBUG=true
     depends_on:
       config-server:
         condition: service_started
