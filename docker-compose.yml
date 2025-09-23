@@ -287,6 +287,52 @@ services:
       retries: 3
       start_period: 90s
 
+  # Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+    container_name: mahabaleshwer-payment-service
+    ports:
+      - "8086:8086"
+    networks:
+      - mahabaleshwer-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - EUREKA_SERVER_URL=http://eureka-user:eureka-pass@service-discovery:8761/eureka/
+      - DB_HOST=mahabaleshwer-mysql
+      - DB_PORT=3306
+      - DB_NAME=mahabaleshwer_mart_payments
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+      - REDIS_HOST=mahabaleshwer-redis
+      # Razorpay Configuration (Test Mode for Pre-prod)
+      - RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxx
+      - RAZORPAY_KEY_SECRET=test_secret_key
+      - RAZORPAY_WEBHOOK_SECRET=test_webhook_secret
+      # Other Payment Gateway Configs
+      - STRIPE_PUBLIC_KEY=pk_test_xxxxxxxxxx
+      - STRIPE_SECRET_KEY=sk_test_xxxxxxxxxx
+      - PAYPAL_CLIENT_ID=sandbox_client_id
+      - PAYPAL_CLIENT_SECRET=sandbox_secret
+      - PAYPAL_MODE=sandbox
+    depends_on:
+      config-server:
+        condition: service_started
+      service-discovery:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/api/payments/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
   # Notification Service
   notification-service:
     build:

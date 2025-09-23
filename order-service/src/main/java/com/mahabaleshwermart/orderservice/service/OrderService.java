@@ -14,6 +14,11 @@ import com.mahabaleshwermart.orderservice.external.CartSummaryDto;
 import com.mahabaleshwermart.orderservice.external.CartItemDto;
 import com.mahabaleshwermart.orderservice.external.UserServiceClient;
 import com.mahabaleshwermart.orderservice.external.UserDto;
+import com.mahabaleshwermart.orderservice.client.PaymentServiceClient;
+import com.mahabaleshwermart.orderservice.dto.payment.PaymentRequest;
+import com.mahabaleshwermart.orderservice.dto.payment.PaymentResponse;
+import com.mahabaleshwermart.orderservice.dto.payment.PaymentVerificationRequest;
+import com.mahabaleshwermart.orderservice.dto.payment.RefundRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -46,6 +51,7 @@ public class OrderService {
     private final NotificationService notificationService;
     private final CartServiceClient cartServiceClient;
     private final UserServiceClient userServiceClient;
+    private final PaymentServiceClient paymentServiceClient;
     
     private static final BigDecimal TAX_RATE = BigDecimal.valueOf(0.18); // 18% GST
     private static final BigDecimal FREE_DELIVERY_THRESHOLD = BigDecimal.valueOf(500);
@@ -600,10 +606,280 @@ public class OrderService {
         return "Staff";
     }
     
+    /**
+     * Initiate payment for an order
+     */
+    @Transactional
+    public PaymentResponse initiatePayment(Long orderId, String paymentMethod, String gatewayProvider) {
+        log.info("Initiating payment for order: {}", orderId);
+        
+        Order order = orderRepository.findById(String.valueOf(orderId))
+            .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+            
+        // Validate order status
+        if (order.getOrderStatus() != Order.OrderStatus.PENDING) {
+            throw new BusinessException("Payment can only be initiated for pending orders");
+        }
+        
+        // Get user details for payment
+        UserDto user = null;
+        try {
+            ApiResponse<UserDto> userResponse = userServiceClient.getUserById(order.getUserId());
+            if (userResponse != null && userResponse.isSuccess() && userResponse.getData() != null) {
+                user = userResponse.getData();
+            } else {
+                throw new BusinessException("Failed to fetch user details for payment");
+            }
+        } catch (Exception e) {
+            log.error("Error fetching user details for payment: {}", e.getMessage());
+            throw new BusinessException("Failed to fetch user details for payment: " + e.getMessage());
+        }
+        
+        // Create payment request
+        PaymentRequest paymentRequest = PaymentRequest.builder()
+            .orderId(orderId)
+            .userId(Long.valueOf(order.getUserId()))
+            .amount(order.getTotalAmount())
+            .currency("INR")
+            .paymentMethod(paymentMethod)
+            .gatewayProvider(gatewayProvider)
+            .description("Payment for Order #" + order.getOrderNumber())
+            .customerEmail(user.email())
+            .customerPhone(user.phone())
+            .customerName(user.name())
+            .orderNumber(order.getOrderNumber())
+            .successUrl("http://localhost:3000/payment/success")
+            .failureUrl("http://localhost:3000/payment/failure")
+            .cancelUrl("http://localhost:3000/payment/cancel")
+            .notes("Order payment for " + order.getOrderNumber())
+            .build();
+            
+        try {
+            // Call payment service to initiate payment
+            var response = paymentServiceClient.initiatePayment(paymentRequest);
+            PaymentResponse paymentResponse = response.getBody();
+            
+            if (paymentResponse != null && "SUCCESS".equals(paymentResponse.getStatus())) {
+                // Update order payment details
+                updateOrderPaymentDetails(order, paymentResponse, paymentMethod);
+                orderRepository.save(order);
+                
+                log.info("Payment initiated successfully for order: {}, payment ID: {}", 
+                    orderId, paymentResponse.getPaymentId());
+            }
+            
+            return paymentResponse;
+            
+        } catch (Exception e) {
+            log.error("Failed to initiate payment for order: {}", orderId, e);
+            throw new BusinessException("Failed to initiate payment: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Verify payment completion
+     */
+    @Transactional
+    public PaymentResponse verifyPayment(Long orderId, PaymentVerificationRequest verificationRequest) {
+        log.info("Verifying payment for order: {}", orderId);
+        
+        Order order = orderRepository.findById(String.valueOf(orderId))
+            .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+            
+        try {
+            // Call payment service to verify payment
+            var response = paymentServiceClient.verifyPayment(verificationRequest);
+            PaymentResponse paymentResponse = response.getBody();
+            
+            if (paymentResponse != null) {
+                // Update order based on payment status
+                updateOrderAfterPaymentVerification(order, paymentResponse);
+                orderRepository.save(order);
+                
+                // Send notification based on payment status
+                if ("SUCCESS".equals(paymentResponse.getStatus())) {
+                    // Send notification - method signature may need adjustment
+                    // notificationService.sendOrderConfirmationEmail(order.getId());
+                    log.info("Payment verified successfully for order: {}", orderId);
+                } else {
+                    log.warn("Payment verification failed for order: {}, status: {}", 
+                        orderId, paymentResponse.getStatus());
+                }
+            }
+            
+            return paymentResponse;
+            
+        } catch (Exception e) {
+            log.error("Failed to verify payment for order: {}", orderId, e);
+            throw new BusinessException("Failed to verify payment: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Process refund for an order
+     */
+    @Transactional
+    public PaymentResponse processRefund(Long orderId, RefundRequest refundRequest) {
+        log.info("Processing refund for order: {}", orderId);
+        
+        Order order = orderRepository.findById(String.valueOf(orderId))
+            .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
+            
+        // Validate order can be refunded
+        if (order.getPayment() == null || !order.getPayment().isCompleted()) {
+            throw new BusinessException("Order payment must be completed before refund can be processed");
+        }
+        
+        try {
+            // Get payment details from payment service
+            var paymentResponse = paymentServiceClient.getPaymentByOrderId(orderId);
+            PaymentResponse payment = paymentResponse.getBody();
+            
+            if (payment == null || payment.getPaymentId() == null) {
+                throw new BusinessException("Payment details not found for order");
+            }
+            
+            // Call payment service to create refund
+            var response = paymentServiceClient.createRefund(payment.getPaymentId(), refundRequest);
+            PaymentResponse refundResponse = response.getBody();
+            
+            if (refundResponse != null && "REFUND_INITIATED".equals(refundResponse.getStatus())) {
+                // Update order status and payment details
+                updateOrderAfterRefund(order, refundResponse);
+                orderRepository.save(order);
+                
+                log.info("Refund initiated successfully for order: {}", orderId);
+            }
+            
+            return refundResponse;
+            
+        } catch (Exception e) {
+            log.error("Failed to process refund for order: {}", orderId, e);
+            throw new BusinessException("Failed to process refund: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Update order payment details after payment initiation
+     */
+    private void updateOrderPaymentDetails(Order order, PaymentResponse paymentResponse, String paymentMethod) {
+        if (order.getPayment() == null) {
+            order.setPayment(new OrderPayment());
+        }
+        
+        OrderPayment payment = order.getPayment();
+        payment.setPaymentGateway(paymentResponse.getGatewayProvider());
+        payment.setPaymentId(paymentResponse.getGatewayOrderId());
+        payment.setPaymentMethod(OrderPayment.PaymentMethod.valueOf(paymentMethod.toUpperCase()));
+        order.setPaymentStatus(Order.PaymentStatus.PROCESSING);
+        payment.setPaidAmount(paymentResponse.getAmount());
+        payment.setCurrency(paymentResponse.getCurrency());
+    }
+    
+    /**
+     * Update order after payment verification
+     */
+    private void updateOrderAfterPaymentVerification(Order order, PaymentResponse paymentResponse) {
+        OrderPayment payment = order.getPayment();
+        
+        if ("SUCCESS".equals(paymentResponse.getStatus())) {
+            order.setPaymentStatus(Order.PaymentStatus.COMPLETED);
+            payment.setPaymentId(paymentResponse.getGatewayPaymentId());
+            payment.setTransactionId(paymentResponse.getGatewayTransactionId());
+            payment.setPaymentDate(paymentResponse.getPaymentCompletedAt());
+            
+            // Update payment method details
+            if (paymentResponse.getCardLastFour() != null) {
+                payment.setCardLastFour(paymentResponse.getCardLastFour());
+                payment.setCardBrand(paymentResponse.getCardBrand());
+            }
+            if (paymentResponse.getUpiId() != null) {
+                payment.setUpiId(paymentResponse.getUpiId());
+            }
+            if (paymentResponse.getBankName() != null) {
+                payment.setBankName(paymentResponse.getBankName());
+            }
+            // Note: Wallet name not supported in current OrderPayment entity
+            
+            // Update order status to confirmed
+            order.setOrderStatus(Order.OrderStatus.CONFIRMED);
+            
+            // Add timeline event
+            addTimelineEvent(order, OrderTimeline.EventType.PAYMENT_COMPLETED, 
+                "Payment completed successfully", "SYSTEM");
+                
+        } else {
+            order.setPaymentStatus(Order.PaymentStatus.FAILED);
+            payment.setFailureReason(paymentResponse.getErrorMessage());
+            
+            // Add timeline event
+            addTimelineEvent(order, OrderTimeline.EventType.PAYMENT_FAILED, 
+                "Payment failed: " + paymentResponse.getErrorMessage(), "SYSTEM");
+        }
+    }
+    
+    /**
+     * Update order after refund processing
+     */
+    private void updateOrderAfterRefund(Order order, PaymentResponse refundResponse) {
+        OrderPayment payment = order.getPayment();
+        
+        if ("REFUND_INITIATED".equals(refundResponse.getStatus())) {
+            order.setPaymentStatus(Order.PaymentStatus.REFUNDED);
+            payment.setRefundAmount(refundResponse.getAmount());
+            payment.setRefundDate(LocalDateTime.now());
+            
+            // Update order status
+            if (order.getOrderStatus() != Order.OrderStatus.CANCELLED) {
+                order.setOrderStatus(Order.OrderStatus.RETURNED);
+            }
+            
+            // Add timeline event
+            addTimelineEvent(order, OrderTimeline.EventType.REFUND_INITIATED, 
+                "Refund initiated for amount: ₹" + refundResponse.getAmount(), "SYSTEM");
+        }
+    }
+    
+    /**
+     * Add timeline event to order
+     */
+    private void addTimelineEvent(Order order, OrderTimeline.EventType eventType, String description, String performedBy) {
+        if (order.getTimeline() == null) {
+            order.setTimeline(new ArrayList<>());
+        }
+        
+        OrderTimeline timelineEvent = OrderTimeline.builder()
+            .order(order)
+            .eventType(eventType)
+            .title(getEventTitle(eventType))
+            .description(description)
+            .performedBy(performedBy)
+            .build();
+            
+        order.getTimeline().add(timelineEvent);
+    }
+    
     private boolean isCriticalStatus(Order.OrderStatus status) {
         return status == Order.OrderStatus.CONFIRMED ||
                status == Order.OrderStatus.SHIPPED ||
                status == Order.OrderStatus.DELIVERED ||
                status == Order.OrderStatus.CANCELLED;
+    }
+    
+    /**
+     * Get event title for timeline events
+     */
+    private String getEventTitle(OrderTimeline.EventType eventType) {
+        return switch (eventType) {
+            case PAYMENT_COMPLETED -> "Payment Completed";
+            case PAYMENT_FAILED -> "Payment Failed";
+            case REFUND_INITIATED -> "Refund Initiated";
+            case ORDER_CONFIRMED -> "Order Confirmed";
+            case ORDER_PROCESSING -> "Order Processing";
+            case ORDER_SHIPPED -> "Order Shipped";
+            case ORDER_DELIVERED -> "Order Delivered";
+            case ORDER_CANCELLED -> "Order Cancelled";
+            default -> "Order Updated";
+        };
     }
 }

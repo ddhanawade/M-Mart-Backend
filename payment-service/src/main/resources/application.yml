@@ -1,0 +1,246 @@
+spring:
+  application:
+    name: payment-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:mmart_payment_db}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  # Redis Configuration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      jedis:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # Security Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8081}
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8086}
+  servlet:
+    context-path: /
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Management/Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+
+# Eureka Configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+    register-with-eureka: true
+    fetch-registry: true
+    healthcheck:
+      enabled: true
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+    metadata-map:
+      management.context-path: /actuator
+
+# Spring Cloud Config
+spring.config.import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+
+# Payment Gateway Configuration
+payment:
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID:rzp_test_xxxxxxxxxx}
+    key-secret: ${RAZORPAY_KEY_SECRET:test_secret_key}
+    webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:test_webhook_secret}
+    base-url: ${RAZORPAY_BASE_URL:https://api.razorpay.com/v1}
+    timeout: 30000
+    
+  stripe:
+    public-key: ${STRIPE_PUBLIC_KEY:pk_test_xxxxxxxxxx}
+    secret-key: ${STRIPE_SECRET_KEY:sk_test_xxxxxxxxxx}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_test_xxxxx}
+    base-url: ${STRIPE_BASE_URL:https://api.stripe.com/v1}
+    
+  paypal:
+    client-id: ${PAYPAL_CLIENT_ID:sandbox_client_id}
+    client-secret: ${PAYPAL_CLIENT_SECRET:sandbox_secret}
+    mode: ${PAYPAL_MODE:sandbox}
+    base-url: ${PAYPAL_BASE_URL:https://api.sandbox.paypal.com}
+
+  # Payment processing configuration
+  processing:
+    timeout-minutes: 15
+    retry-attempts: 3
+    webhook-retry-attempts: 5
+    
+  # Security settings
+  security:
+    webhook-signature-validation: true
+    payment-encryption: true
+    
+# Logging Configuration
+logging:
+  level:
+    com.mahabaleshwermart.paymentservice: ${LOG_LEVEL:INFO}
+    org.springframework.security: WARN
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    com.razorpay: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/payment-service.log
+    max-size: 10MB
+    max-history: 30
+
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+  info:
+    title: Payment Service API
+    description: Payment gateway service with Razorpay integration
+    version: 1.0.0
+    contact:
+      name: M-Mart Development Team
+      email: dev@mmart.com
+
+# Custom Application Properties
+app:
+  name: Payment Service
+  version: 1.0.0
+  description: Payment gateway service for M-Mart e-commerce platform
+  
+---
+# Development Profile
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  datasource:
+    url: jdbc:mysql://localhost:3306/mmart_payment_dev
+    
+payment:
+  razorpay:
+    key-id: rzp_test_xxxxxxxxxx
+    key-secret: test_secret_key
+    webhook-secret: test_webhook_secret
+    
+logging:
+  level:
+    com.mahabaleshwermart.paymentservice: DEBUG
+    org.springframework.web: DEBUG
+
+---
+# Test Profile
+spring:
+  config:
+    activate:
+      on-profile: test
+      
+  datasource:
+    url: jdbc:mysql://localhost:3307/mmart_payment_test
+    
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+      
+payment:
+  razorpay:
+    key-id: rzp_test_mock
+    key-secret: test_mock_secret
+    webhook-secret: test_mock_webhook
+    
+  processing:
+    timeout-minutes: 1
+    retry-attempts: 1
+    
+logging:
+  level:
+    com.mahabaleshwermart.paymentservice: DEBUG
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+      
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    
+payment:
+  razorpay:
+    key-id: ${RAZORPAY_LIVE_KEY_ID}
+    key-secret: ${RAZORPAY_LIVE_KEY_SECRET}
+    webhook-secret: ${RAZORPAY_LIVE_WEBHOOK_SECRET}
+    base-url: https://api.razorpay.com/v1
+    
+  security:
+    webhook-signature-validation: true
+    payment-encryption: true
+    
+logging:
+  level:
+    com.mahabaleshwermart.paymentservice: INFO
+    root: WARN

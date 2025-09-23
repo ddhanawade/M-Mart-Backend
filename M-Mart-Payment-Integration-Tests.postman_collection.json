@@ -1,0 +1,451 @@
+{
+  "info": {
+    "name": "M-Mart Payment Integration - Complete E2E Tests",
+    "description": "Comprehensive Postman collection for testing Razorpay payment integration in M-Mart Backend",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost",
+      "type": "string"
+    },
+    {
+      "key": "orderServicePort",
+      "value": "8084",
+      "type": "string"
+    },
+    {
+      "key": "paymentServicePort",
+      "value": "8086",
+      "type": "string"
+    },
+    {
+      "key": "apiGatewayPort",
+      "value": "8080",
+      "type": "string"
+    },
+    {
+      "key": "jwtToken",
+      "value": "YOUR_JWT_TOKEN_HERE",
+      "type": "string"
+    },
+    {
+      "key": "testOrderId",
+      "value": "12345",
+      "type": "string"
+    },
+    {
+      "key": "testUserId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health Checks",
+      "item": [
+        {
+          "name": "Order Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}:{{orderServicePort}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderServicePort}}",
+              "path": ["actuator", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Service Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentServicePort}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentServicePort}}",
+              "path": ["actuator", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Service API Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentServicePort}}/api/payments/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentServicePort}}",
+              "path": ["api", "payments", "health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order Service Payment Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}:{{orderServicePort}}/api/orders/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderServicePort}}",
+              "path": ["api", "orders", "health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Payment Service Direct APIs",
+      "item": [
+        {
+          "name": "Initiate Payment (Direct)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": {{testOrderId}},\n  \"userId\": {{testUserId}},\n  \"amount\": 100.00,\n  \"currency\": \"INR\",\n  \"paymentMethod\": \"CREDIT_CARD\",\n  \"gatewayProvider\": \"RAZORPAY\",\n  \"description\": \"Test payment for order #{{testOrderId}}\",\n  \"customerEmail\": \"test@mahabaleshwermart.com\",\n  \"customerPhone\": \"9876543210\",\n  \"customerName\": \"Test User\",\n  \"orderNumber\": \"ORD-TEST-001\",\n  \"successUrl\": \"http://localhost:3000/payment/success\",\n  \"failureUrl\": \"http://localhost:3000/payment/failure\",\n  \"cancelUrl\": \"http://localhost:3000/payment/cancel\",\n  \"notes\": \"End-to-end test payment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentServicePort}}/api/payments/initiate",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentServicePort}}",
+              "path": ["api", "payments", "initiate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment (Direct)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"PAYMENT_ID_FROM_INITIATE_RESPONSE\",\n  \"razorpayPaymentId\": \"pay_test123456789\",\n  \"razorpayOrderId\": \"order_test123456789\",\n  \"razorpaySignature\": \"test_signature_hash\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentServicePort}}/api/payments/verify",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentServicePort}}",
+              "path": ["api", "payments", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentServicePort}}/api/payments/PAYMENT_ID",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentServicePort}}",
+              "path": ["api", "payments", "PAYMENT_ID"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Process Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50.00,\n  \"reason\": \"Customer requested refund\",\n  \"refundType\": \"PARTIAL\",\n  \"notes\": \"Test refund processing\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentServicePort}}/api/payments/PAYMENT_ID/refund",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentServicePort}}",
+              "path": ["api", "payments", "PAYMENT_ID", "refund"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Order Service Payment APIs",
+      "item": [
+        {
+          "name": "Initiate Order Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"CREDIT_CARD\",\n  \"gatewayProvider\": \"RAZORPAY\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{orderServicePort}}/api/orders/{{testOrderId}}/payment/initiate",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderServicePort}}",
+              "path": ["api", "orders", "{{testOrderId}}", "payment", "initiate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Order Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentId\": \"PAYMENT_ID_FROM_INITIATE\",\n  \"razorpayPaymentId\": \"pay_test123456789\",\n  \"razorpayOrderId\": \"order_test123456789\",\n  \"razorpaySignature\": \"test_signature_hash\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{orderServicePort}}/api/orders/{{testOrderId}}/payment/verify",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderServicePort}}",
+              "path": ["api", "orders", "{{testOrderId}}", "payment", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}:{{orderServicePort}}/api/orders/{{testOrderId}}/payment/status",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderServicePort}}",
+              "path": ["api", "orders", "{{testOrderId}}", "payment", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Process Order Refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50.00,\n  \"reason\": \"Order cancellation\",\n  \"refundType\": \"PARTIAL\",\n  \"notes\": \"Customer requested order cancellation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{orderServicePort}}/api/orders/{{testOrderId}}/payment/refund",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderServicePort}}",
+              "path": ["api", "orders", "{{testOrderId}}", "payment", "refund"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Webhook Testing",
+      "item": [
+        {
+          "name": "Razorpay Payment Authorized Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Razorpay-Signature",
+                "value": "test_signature_hash"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity\": \"event\",\n  \"account_id\": \"acc_test123\",\n  \"event\": \"payment.authorized\",\n  \"contains\": [\"payment\"],\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"pay_test123456789\",\n        \"entity\": \"payment\",\n        \"amount\": 10000,\n        \"currency\": \"INR\",\n        \"status\": \"authorized\",\n        \"order_id\": \"order_test123456789\",\n        \"method\": \"card\",\n        \"description\": \"Test payment for order #{{testOrderId}}\",\n        \"email\": \"test@mahabaleshwermart.com\",\n        \"contact\": \"+919876543210\",\n        \"notes\": {\n          \"order_id\": \"{{testOrderId}}\",\n          \"customer_name\": \"Test User\"\n        },\n        \"created_at\": 1640995200\n      }\n    }\n  },\n  \"created_at\": 1640995200\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentServicePort}}/api/payments/webhook/razorpay",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentServicePort}}",
+              "path": ["api", "payments", "webhook", "razorpay"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Razorpay Payment Captured Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Razorpay-Signature",
+                "value": "test_signature_hash"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity\": \"event\",\n  \"account_id\": \"acc_test123\",\n  \"event\": \"payment.captured\",\n  \"contains\": [\"payment\"],\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"pay_test123456789\",\n        \"entity\": \"payment\",\n        \"amount\": 10000,\n        \"currency\": \"INR\",\n        \"status\": \"captured\",\n        \"order_id\": \"order_test123456789\",\n        \"method\": \"card\",\n        \"captured\": true,\n        \"description\": \"Test payment for order #{{testOrderId}}\",\n        \"email\": \"test@mahabaleshwermart.com\",\n        \"contact\": \"+919876543210\",\n        \"notes\": {\n          \"order_id\": \"{{testOrderId}}\",\n          \"customer_name\": \"Test User\"\n        },\n        \"created_at\": 1640995200\n      }\n    }\n  },\n  \"created_at\": 1640995200\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentServicePort}}/api/payments/webhook/razorpay",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentServicePort}}",
+              "path": ["api", "payments", "webhook", "razorpay"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Razorpay Payment Failed Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Razorpay-Signature",
+                "value": "test_signature_hash"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity\": \"event\",\n  \"account_id\": \"acc_test123\",\n  \"event\": \"payment.failed\",\n  \"contains\": [\"payment\"],\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"pay_test123456789\",\n        \"entity\": \"payment\",\n        \"amount\": 10000,\n        \"currency\": \"INR\",\n        \"status\": \"failed\",\n        \"order_id\": \"order_test123456789\",\n        \"method\": \"card\",\n        \"error_code\": \"BAD_REQUEST_ERROR\",\n        \"error_description\": \"Payment failed due to insufficient funds\",\n        \"description\": \"Test payment for order #{{testOrderId}}\",\n        \"email\": \"test@mahabaleshwermart.com\",\n        \"contact\": \"+919876543210\",\n        \"notes\": {\n          \"order_id\": \"{{testOrderId}}\",\n          \"customer_name\": \"Test User\"\n        },\n        \"created_at\": 1640995200\n      }\n    }\n  },\n  \"created_at\": 1640995200\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentServicePort}}/api/payments/webhook/razorpay",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentServicePort}}",
+              "path": ["api", "payments", "webhook", "razorpay"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Service Discovery & Monitoring",
+      "item": [
+        {
+          "name": "Eureka Service Registry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}:8761/eureka/apps",
+              "host": ["{{baseUrl}}"],
+              "port": "8761",
+              "path": ["eureka", "apps"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment Service in Eureka",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}:8761/eureka/apps/PAYMENT-SERVICE",
+              "host": ["{{baseUrl}}"],
+              "port": "8761",
+              "path": ["eureka", "apps", "PAYMENT-SERVICE"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Order Service in Eureka",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}:8761/eureka/apps/ORDER-SERVICE",
+              "host": ["{{baseUrl}}"],
+              "port": "8761",
+              "path": ["eureka", "apps", "ORDER-SERVICE"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
