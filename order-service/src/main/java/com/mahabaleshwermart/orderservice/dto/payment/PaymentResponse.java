@@ -35,6 +35,7 @@ public class PaymentResponse {
     // Payment URLs for frontend integration
     private String paymentUrl;
     private String qrCodeUrl;
+    private String publicKey;
     
     // Payment details (masked for security)
     private String cardLastFour;

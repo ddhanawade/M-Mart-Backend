@@ -40,7 +40,6 @@ public class PaymentController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @PostMapping("/initiate")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     public ResponseEntity<PaymentResponse> initiatePayment(
             @Valid @RequestBody PaymentRequest paymentRequest) {
         
@@ -74,7 +73,6 @@ public class PaymentController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @PostMapping("/verify")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     public ResponseEntity<PaymentResponse> verifyPayment(
             @Valid @RequestBody PaymentVerificationRequest verificationRequest) {
         
@@ -107,7 +105,6 @@ public class PaymentController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/{paymentId}")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     public ResponseEntity<PaymentResponse> getPayment(
             @Parameter(description = "Payment ID") @PathVariable String paymentId) {
         
@@ -140,7 +137,6 @@ public class PaymentController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/order/{orderId}")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     public ResponseEntity<PaymentResponse> getPaymentByOrderId(
             @Parameter(description = "Order ID") @PathVariable String orderId) {
         
@@ -172,7 +168,6 @@ public class PaymentController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @GetMapping("/user/{userId}")
-    @PreAuthorize("hasRole('CUSTOMER') or hasRole('ADMIN')")
     public ResponseEntity<List<PaymentResponse>> getPaymentsByUserId(
             @Parameter(description = "User ID") @PathVariable String userId) {
         
@@ -195,7 +190,6 @@ public class PaymentController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @PostMapping("/{paymentId}/refund")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PaymentResponse> createRefund(
             @Parameter(description = "Payment ID") @PathVariable String paymentId,
             @Parameter(description = "Refund amount") @RequestParam BigDecimal amount,

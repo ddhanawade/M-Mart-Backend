@@ -28,6 +28,10 @@ public class PaymentVerificationRequest {
     @NotBlank(message = "Payment signature is required")
     private String paymentSignature;
 
+    // For compatibility with payment-service DTO
+    private String razorpaySignature;
+    private String signature;
+
     // Additional verification data
     private String gatewayProvider;
     private String amount;

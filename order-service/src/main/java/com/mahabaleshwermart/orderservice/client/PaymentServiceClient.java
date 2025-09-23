@@ -3,7 +3,6 @@ package com.mahabaleshwermart.orderservice.client;
 import com.mahabaleshwermart.orderservice.dto.payment.PaymentRequest;
 import com.mahabaleshwermart.orderservice.dto.payment.PaymentResponse;
 import com.mahabaleshwermart.orderservice.dto.payment.PaymentVerificationRequest;
-import com.mahabaleshwermart.orderservice.dto.payment.RefundRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,21 +34,22 @@ public interface PaymentServiceClient {
      * Get payment details by payment ID
      */
     @GetMapping("/api/payments/{paymentId}")
-    ResponseEntity<PaymentResponse> getPayment(@PathVariable("paymentId") Long paymentId);
+    ResponseEntity<PaymentResponse> getPayment(@PathVariable("paymentId") String paymentId);
 
     /**
      * Get payment details by order ID
      */
     @GetMapping("/api/payments/order/{orderId}")
-    ResponseEntity<PaymentResponse> getPaymentByOrderId(@PathVariable("orderId") Long orderId);
+    ResponseEntity<PaymentResponse> getPaymentByOrderId(@PathVariable("orderId") String orderId);
 
     /**
      * Create a refund for a payment
      */
     @PostMapping("/api/payments/{paymentId}/refund")
     ResponseEntity<PaymentResponse> createRefund(
-        @PathVariable("paymentId") Long paymentId,
-        @RequestBody RefundRequest refundRequest
+        @PathVariable("paymentId") String paymentId,
+        @RequestParam("amount") java.math.BigDecimal amount,
+        @RequestParam(value = "reason", required = false) String reason
     );
 
     /**

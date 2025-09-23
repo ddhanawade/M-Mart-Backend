@@ -540,13 +540,26 @@ public class OrderService {
     
     private void handleStatusChange(Order order, Order.OrderStatus newStatus, String performedBy) {
         switch (newStatus) {
+            case PENDING -> {
+                // no-op
+            }
             case CONFIRMED -> order.setOrderStatus(Order.OrderStatus.CONFIRMED);
+            case PROCESSING -> order.setOrderStatus(Order.OrderStatus.PROCESSING);
+            case PACKED -> order.setOrderStatus(Order.OrderStatus.PACKED);
             case SHIPPED -> {
                 if (order.getTrackingNumber() == null) {
                     order.setTrackingNumber(generateTrackingNumber());
                 }
+                order.setOrderStatus(Order.OrderStatus.SHIPPED);
             }
-            case DELIVERED -> order.setActualDelivery(LocalDateTime.now());
+            case OUT_FOR_DELIVERY -> order.setOrderStatus(Order.OrderStatus.OUT_FOR_DELIVERY);
+            case DELIVERED -> {
+                order.setActualDelivery(LocalDateTime.now());
+                order.setOrderStatus(Order.OrderStatus.DELIVERED);
+            }
+            case CANCELLED -> order.setOrderStatus(Order.OrderStatus.CANCELLED);
+            case RETURNED -> order.setOrderStatus(Order.OrderStatus.RETURNED);
+            case REFUNDED -> order.setOrderStatus(Order.OrderStatus.REFUNDED);
         }
     }
     
@@ -636,7 +649,7 @@ public class OrderService {
         }
         
         // Create payment request
-        PaymentRequest paymentRequest = PaymentRequest.builder()
+            PaymentRequest paymentRequest = PaymentRequest.builder()
             .orderId(orderId)
             .userId(Long.valueOf(order.getUserId()))
             .amount(order.getTotalAmount())
@@ -648,9 +661,9 @@ public class OrderService {
             .customerPhone(user.phone())
             .customerName(user.name())
             .orderNumber(order.getOrderNumber())
-            .successUrl("http://localhost:3000/payment/success")
-            .failureUrl("http://localhost:3000/payment/failure")
-            .cancelUrl("http://localhost:3000/payment/cancel")
+            .returnUrl("http://localhost:4200/payment/success")
+            .cancelUrl("http://localhost:4200/payment/cancel")
+            .callbackUrl("http://localhost:8080/payment-service/api/payments/webhook/razorpay")
             .notes("Order payment for " + order.getOrderNumber())
             .build();
             
@@ -732,7 +745,7 @@ public class OrderService {
         
         try {
             // Get payment details from payment service
-            var paymentResponse = paymentServiceClient.getPaymentByOrderId(orderId);
+            var paymentResponse = paymentServiceClient.getPaymentByOrderId(String.valueOf(orderId));
             PaymentResponse payment = paymentResponse.getBody();
             
             if (payment == null || payment.getPaymentId() == null) {
@@ -740,7 +753,11 @@ public class OrderService {
             }
             
             // Call payment service to create refund
-            var response = paymentServiceClient.createRefund(payment.getPaymentId(), refundRequest);
+            var response = paymentServiceClient.createRefund(
+                String.valueOf(payment.getPaymentId()),
+                refundRequest.getAmount(),
+                refundRequest.getReason()
+            );
             PaymentResponse refundResponse = response.getBody();
             
             if (refundResponse != null && "REFUND_INITIATED".equals(refundResponse.getStatus())) {

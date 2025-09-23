@@ -64,6 +64,12 @@ spring:
             - Path=/order-service/**
           filters:
             - StripPrefix=1
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/payment-service/**
+          filters:
+            - StripPrefix=1
         - id: notification-service
           uri: lb://notification-service
           predicates:

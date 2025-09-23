@@ -3,7 +3,6 @@ package com.mahabaleshwermart.orderservice.client;
 import com.mahabaleshwermart.orderservice.dto.payment.PaymentRequest;
 import com.mahabaleshwermart.orderservice.dto.payment.PaymentResponse;
 import com.mahabaleshwermart.orderservice.dto.payment.PaymentVerificationRequest;
-import com.mahabaleshwermart.orderservice.dto.payment.RefundRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,11 +48,11 @@ public class PaymentServiceClientFallback implements PaymentServiceClient {
     }
 
     @Override
-    public ResponseEntity<PaymentResponse> getPayment(Long paymentId) {
+    public ResponseEntity<PaymentResponse> getPayment(String paymentId) {
         log.error("Payment service is unavailable. Cannot fetch payment: {}", paymentId);
         
         PaymentResponse fallbackResponse = PaymentResponse.builder()
-            .paymentId(paymentId)
+            .paymentId(null)
             .status("UNKNOWN")
             .message("Payment service is currently unavailable. Cannot fetch payment details.")
             .build();
@@ -62,11 +61,11 @@ public class PaymentServiceClientFallback implements PaymentServiceClient {
     }
 
     @Override
-    public ResponseEntity<PaymentResponse> getPaymentByOrderId(Long orderId) {
+    public ResponseEntity<PaymentResponse> getPaymentByOrderId(String orderId) {
         log.error("Payment service is unavailable. Cannot fetch payment for order: {}", orderId);
         
         PaymentResponse fallbackResponse = PaymentResponse.builder()
-            .orderId(orderId)
+            .orderId(Long.valueOf(orderId))
             .status("UNKNOWN")
             .message("Payment service is currently unavailable. Cannot fetch payment details.")
             .build();
@@ -75,11 +74,11 @@ public class PaymentServiceClientFallback implements PaymentServiceClient {
     }
 
     @Override
-    public ResponseEntity<PaymentResponse> createRefund(Long paymentId, RefundRequest refundRequest) {
+    public ResponseEntity<PaymentResponse> createRefund(String paymentId, java.math.BigDecimal amount, String reason) {
         log.error("Payment service is unavailable. Cannot create refund for payment: {}", paymentId);
         
         PaymentResponse fallbackResponse = PaymentResponse.builder()
-            .paymentId(paymentId)
+            .paymentId(null)
             .status("REFUND_FAILED")
             .message("Payment service is currently unavailable. Cannot process refund.")
             .build();

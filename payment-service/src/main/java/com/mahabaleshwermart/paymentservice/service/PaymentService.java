@@ -341,6 +341,7 @@ public class PaymentService {
                 .gatewayPaymentId(payment.getGatewayPaymentId())
                 .gatewayOrderId(payment.getGatewayOrderId())
                 .paymentUrl(payment.getPaymentUrl())
+                .publicKey(null)
                 .failureReason(payment.getFailureReason())
                 .createdAt(payment.getCreatedAt())
                 .paymentDate(payment.getPaymentDate())

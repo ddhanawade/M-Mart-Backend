@@ -35,20 +35,13 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/payments/health",
                     "/api/payments/webhook/**",
+                    "/api/payments/**",
                     "/actuator/**",
                     "/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs/**"
                 ).permitAll()
-                
-                // Internal service endpoints (no authentication required)
-                .requestMatchers(
-                    "/api/payments/internal/**"
-                ).permitAll()
-                
-                // Protected endpoints (require authentication)
-                .requestMatchers("/api/payments/**").authenticated()
                 
                 // All other requests require authentication
                 .anyRequest().authenticated()

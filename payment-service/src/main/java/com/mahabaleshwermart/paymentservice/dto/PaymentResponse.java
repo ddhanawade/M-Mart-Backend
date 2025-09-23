@@ -30,6 +30,7 @@ public class PaymentResponse {
     private String gatewayOrderId;
     private String paymentUrl;
     private String failureReason;
+    private String publicKey;
     private LocalDateTime createdAt;
     private LocalDateTime paymentDate;
     

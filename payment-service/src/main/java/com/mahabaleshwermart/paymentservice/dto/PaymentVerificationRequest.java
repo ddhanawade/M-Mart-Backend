@@ -29,6 +29,7 @@ public class PaymentVerificationRequest {
 
     // Additional fields for different gateways
     private String razorpaySignature;
+    private String paymentSignature; // alias for gateway signature from other services
     private String stripePaymentIntentId;
     private String paypalPaymentId;
 }

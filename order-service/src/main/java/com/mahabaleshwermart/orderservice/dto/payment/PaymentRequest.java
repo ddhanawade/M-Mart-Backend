@@ -47,10 +47,10 @@ public class PaymentRequest {
 
     private String customerName;
 
-    // Callback URLs for payment completion
-    private String successUrl;
-    private String failureUrl;
-    private String cancelUrl;
+    // Callback/redirect URLs expected by payment-service
+    private String returnUrl;   // success/return URL
+    private String cancelUrl;   // cancel/failure URL
+    private String callbackUrl; // optional server callback URL
 
     // Additional metadata
     private String orderNumber;
