@@ -33,10 +33,10 @@ spring:
             trust: ${MAIL_SSL_TRUST:smtp.gmail.com}
             checkserveridentity: true
           auth.mechanisms: ${MAIL_AUTH_MECHANISMS:LOGIN PLAIN}
-        debug: ${MAIL_DEBUG:false}
           connectiontimeout: 5000
           timeout: 3000
           writetimeout: 5000
+        debug: ${MAIL_DEBUG:false}
     test-connection: false
   
   # Template Engine Configuration

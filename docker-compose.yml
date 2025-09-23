@@ -304,13 +304,13 @@ services:
       - RABBITMQ_HOST=mahabaleshwer-rabbitmq
       - RABBITMQ_USERNAME=admin
       - RABBITMQ_PASSWORD=admin123
-      # Email Configuration (Mailtrap for dev)
+      # Email Configuration (Gmail SMTP)
       - EMAIL_ENABLED=true
-      - MAIL_HOST=sandbox.smtp.mailtrap.io
+      - MAIL_HOST=smtp.gmail.com
       - MAIL_PORT=587
-      - MAIL_USERNAME=${MAILTRAP_USERNAME}
-      - MAIL_PASSWORD=${MAILTRAP_PASSWORD}
-      - EMAIL_FROM=no-reply@mahabaleshwermart.test
+      - MAIL_USERNAME=ddhanawade804@gmail.com
+      - MAIL_PASSWORD=gmqe wtby ajfm fyyu
+      - EMAIL_FROM=noreply@mahabaleshwarmart.com
       - MAIL_DEBUG=true
     depends_on:
       config-server:
