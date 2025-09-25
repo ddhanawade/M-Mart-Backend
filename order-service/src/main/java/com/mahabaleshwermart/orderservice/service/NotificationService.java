@@ -4,7 +4,7 @@ import com.mahabaleshwermart.common.events.OrderNotificationEvent;
 import com.mahabaleshwermart.orderservice.entity.Order;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -12,19 +12,21 @@ import java.time.LocalDateTime;
 
 /**
  * Notification Service
- * Handles sending notifications for order events via RabbitMQ
+ * Handles sending notifications for order events via Kafka
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
     
-    private final RabbitTemplate rabbitTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     
-    private static final String ORDER_NOTIFICATION_EXCHANGE = "order.notifications";
-    private static final String ORDER_CONFIRMATION_ROUTING_KEY = "order.confirmed";
-    private static final String ORDER_STATUS_UPDATE_ROUTING_KEY = "order.status.updated";
-    private static final String ORDER_CANCELLATION_ROUTING_KEY = "order.cancelled";
+    // Kafka Topic Names
+    private static final String ORDER_CONFIRMED_TOPIC = "order-confirmed";
+    private static final String ORDER_STATUS_UPDATED_TOPIC = "order-status-updated";
+    private static final String ORDER_CANCELLED_TOPIC = "order-cancelled";
+    private static final String PAYMENT_CONFIRMED_TOPIC = "payment-confirmed";
+    private static final String ORDER_DELIVERED_TOPIC = "order-delivered";
     
     /**
      * Send order confirmation notification
@@ -44,8 +46,8 @@ public class NotificationService {
                     .message("Your order has been confirmed successfully!")
                     .build();
             
-            rabbitTemplate.convertAndSend(ORDER_NOTIFICATION_EXCHANGE, ORDER_CONFIRMATION_ROUTING_KEY, event);
-            log.info("Order confirmation notification sent successfully");
+            kafkaTemplate.send(ORDER_CONFIRMED_TOPIC, order.getOrderNumber(), event);
+            log.info("Order confirmation notification sent successfully to Kafka topic: {}", ORDER_CONFIRMED_TOPIC);
             
         } catch (Exception e) {
             log.error("Failed to send order confirmation notification for order: {}", order.getOrderNumber(), e);
@@ -73,8 +75,8 @@ public class NotificationService {
                     .trackingNumber(order.getTrackingNumber())
                     .build();
             
-            rabbitTemplate.convertAndSend(ORDER_NOTIFICATION_EXCHANGE, ORDER_STATUS_UPDATE_ROUTING_KEY, event);
-            log.info("Order status update notification sent successfully");
+            kafkaTemplate.send(ORDER_STATUS_UPDATED_TOPIC, order.getOrderNumber(), event);
+            log.info("Order status update notification sent successfully to Kafka topic: {}", ORDER_STATUS_UPDATED_TOPIC);
             
         } catch (Exception e) {
             log.error("Failed to send order status update notification for order: {}", order.getOrderNumber(), e);
@@ -100,8 +102,8 @@ public class NotificationService {
                     .cancellationReason(reason)
                     .build();
             
-            rabbitTemplate.convertAndSend(ORDER_NOTIFICATION_EXCHANGE, ORDER_CANCELLATION_ROUTING_KEY, event);
-            log.info("Order cancellation notification sent successfully");
+            kafkaTemplate.send(ORDER_CANCELLED_TOPIC, order.getOrderNumber(), event);
+            log.info("Order cancellation notification sent successfully to Kafka topic: {}", ORDER_CANCELLED_TOPIC);
             
         } catch (Exception e) {
             log.error("Failed to send order cancellation notification for order: {}", order.getOrderNumber(), e);
@@ -127,8 +129,8 @@ public class NotificationService {
                     .message("Your payment has been processed successfully!")
                     .build();
             
-            rabbitTemplate.convertAndSend(ORDER_NOTIFICATION_EXCHANGE, "payment.confirmed", event);
-            log.info("Payment confirmation notification sent successfully");
+            kafkaTemplate.send(PAYMENT_CONFIRMED_TOPIC, order.getOrderNumber(), event);
+            log.info("Payment confirmation notification sent successfully to Kafka topic: {}", PAYMENT_CONFIRMED_TOPIC);
             
         } catch (Exception e) {
             log.error("Failed to send payment confirmation notification for order: {}", order.getOrderNumber(), e);
@@ -153,8 +155,8 @@ public class NotificationService {
                     .deliveryAddress(order.getDeliveryAddress().getFullAddress())
                     .build();
             
-            rabbitTemplate.convertAndSend(ORDER_NOTIFICATION_EXCHANGE, "order.delivered", event);
-            log.info("Delivery notification sent successfully");
+            kafkaTemplate.send(ORDER_DELIVERED_TOPIC, order.getOrderNumber(), event);
+            log.info("Delivery notification sent successfully to Kafka topic: {}", ORDER_DELIVERED_TOPIC);
             
         } catch (Exception e) {
             log.error("Failed to send delivery notification for order: {}", order.getOrderNumber(), e);

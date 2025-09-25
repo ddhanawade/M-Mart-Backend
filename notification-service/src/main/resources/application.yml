@@ -9,11 +9,16 @@ spring:
   application:
     name: notification-service
   
-  # Exclude JPA auto-configuration since this service doesn't use database
+  # Exclude JPA and RabbitMQ auto-configuration since this service doesn't use database or RabbitMQ
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+  
+  # Explicitly disable RabbitMQ
+  rabbitmq:
+    enabled: false
   
   # Email Configuration
   mail:
@@ -47,31 +52,28 @@ spring:
     encoding: UTF-8
     mode: HTML
   
-  # RabbitMQ Configuration
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:admin}
-    password: ${RABBITMQ_PASSWORD:admin123}
-    virtual-host: ${RABBITMQ_VHOST:/}
-    connection-timeout: 15000
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.mahabaleshwermart.common.events"
+        spring.json.value.default.type: "com.mahabaleshwermart.common.events.OrderNotificationEvent"
+      enable-auto-commit: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
     listener:
-      simple:
-        retry:
-          enabled: true
-          initial-interval: 1000
-          max-attempts: 3
-          multiplier: 2
-        acknowledge-mode: auto
-        prefetch: 10
-        concurrency: 3
-        max-concurrency: 10
-    template:
-      retry:
-        enabled: true
-        initial-interval: 1000
-        max-attempts: 3
-        multiplier: 2
+      ack-mode: manual_immediate
+      concurrency: 3
   
   # Redis Configuration for Caching
   data:
@@ -121,7 +123,7 @@ management:
   health:
     redis:
       enabled: true
-    rabbit:
+    kafka:
       enabled: true
     mail:
       enabled: false
@@ -130,7 +132,7 @@ management:
 logging:
   level:
     com.mahabaleshwermart: INFO
-    org.springframework.amqp: DEBUG
+    org.springframework.kafka: DEBUG
     org.springframework.mail: DEBUG
     org.thymeleaf: DEBUG
   pattern:

@@ -96,7 +96,12 @@ spring.config.import: optional:configserver:${CONFIG_SERVER_URL:http://localhost
 
 # Payment Gateway Configuration
 payment:
+  # Global payment gateway enable/disable flag
+  enabled: ${PAYMENT_GATEWAY_ENABLED:false}
+  mock-mode: ${PAYMENT_MOCK_MODE:true}
+  
   razorpay:
+    enabled: ${RAZORPAY_ENABLED:false}
     key-id: ${RAZORPAY_KEY_ID:rzp_test_xxxxxxxxxx}
     key-secret: ${RAZORPAY_KEY_SECRET:test_secret_key}
     webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:test_webhook_secret}
@@ -104,12 +109,14 @@ payment:
     timeout: 30000
     
   stripe:
+    enabled: ${STRIPE_ENABLED:false}
     public-key: ${STRIPE_PUBLIC_KEY:pk_test_xxxxxxxxxx}
     secret-key: ${STRIPE_SECRET_KEY:sk_test_xxxxxxxxxx}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_test_xxxxx}
     base-url: ${STRIPE_BASE_URL:https://api.stripe.com/v1}
     
   paypal:
+    enabled: ${PAYPAL_ENABLED:false}
     client-id: ${PAYPAL_CLIENT_ID:sandbox_client_id}
     client-secret: ${PAYPAL_CLIENT_SECRET:sandbox_secret}
     mode: ${PAYPAL_MODE:sandbox}

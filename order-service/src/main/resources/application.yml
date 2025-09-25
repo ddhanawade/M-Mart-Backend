@@ -11,6 +11,15 @@ spring:
   config:
     import: optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}
   
+  # Exclude RabbitMQ auto-configuration since this service uses Kafka
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+  
+  # Explicitly disable RabbitMQ
+  rabbitmq:
+    enabled: false
+  
   # Database Configuration
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:mahabaleshwer_mart_orders}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
@@ -54,29 +63,20 @@ spring:
           min-idle: 0
           max-wait: -1ms
   
-  # RabbitMQ Configuration
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:admin}
-    password: ${RABBITMQ_PASSWORD:admin123}
-    virtual-host: ${RABBITMQ_VHOST:/}
-    connection-timeout: 15000
-    listener:
-      simple:
-        retry:
-          enabled: true
-          initial-interval: 1000
-          max-attempts: 3
-          multiplier: 2
-        acknowledge-mode: auto
-        prefetch: 10
-    template:
-      retry:
-        enabled: true
-        initial-interval: 1000
-        max-attempts: 3
-        multiplier: 2
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+        batch.size: 16384
+        linger.ms: 5
+        buffer.memory: 33554432
   
   # Cache Configuration
   cache:
@@ -132,7 +132,7 @@ management:
       enabled: true
     db:
       enabled: true
-    rabbit:
+    kafka:
       enabled: true
 
 # Logging Configuration
@@ -141,7 +141,7 @@ logging:
     com.mahabaleshwermart: DEBUG
     com.mahabaleshwermart.orderservice: DEBUG
     org.springframework.cache: DEBUG
-    org.springframework.amqp: DEBUG
+    org.springframework.kafka: DEBUG
     org.springframework.web: DEBUG
     org.springframework.transaction: DEBUG
     org.hibernate: DEBUG
@@ -208,4 +208,10 @@ payment-service:
   timeout: 30s
   retry:
     max-attempts: 3
-    delay: 1s 
+    delay: 1s
+
+# Payment Gateway Configuration
+payment:
+  enabled: ${PAYMENT_GATEWAY_ENABLED:false}
+  mock-mode: ${PAYMENT_MOCK_MODE:true}
+  skip-payment-processing: ${SKIP_PAYMENT_PROCESSING:true} 

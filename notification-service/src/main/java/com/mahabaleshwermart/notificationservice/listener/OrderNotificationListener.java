@@ -5,7 +5,11 @@ import com.mahabaleshwermart.notificationservice.service.SmsService;
 import com.mahabaleshwermart.common.events.OrderNotificationEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -13,7 +17,7 @@ import java.time.LocalDateTime;
 
 /**
  * Order Notification Listener
- * Processes order-related notification events from RabbitMQ
+ * Processes order-related notification events from Kafka
  */
 @Slf4j
 @Component
@@ -26,8 +30,10 @@ public class OrderNotificationListener {
     /**
      * Handle order confirmation notifications
      */
-    @RabbitListener(queues = "order.confirmed.queue")
-    public void handleOrderConfirmation(OrderNotificationEvent event) {
+    @KafkaListener(topics = "order-confirmed", groupId = "notification-service")
+    public void handleOrderConfirmation(@Payload OrderNotificationEvent event, 
+                                      @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                                      Acknowledgment acknowledgment) {
         log.info("Processing order confirmation notification for order: {}", event.getOrderNumber());
         
         try {
@@ -50,17 +56,21 @@ public class OrderNotificationListener {
             }
             
             log.info("Order confirmation notifications sent successfully for order: {}", event.getOrderNumber());
+            acknowledgment.acknowledge();
             
         } catch (Exception e) {
             log.error("Failed to process order confirmation notification for order: {}", event.getOrderNumber(), e);
+            // Don't acknowledge on error - message will be retried
         }
     }
     
     /**
      * Handle order status update notifications
      */
-    @RabbitListener(queues = "order.status.updated.queue")
-    public void handleOrderStatusUpdate(OrderNotificationEvent event) {
+    @KafkaListener(topics = "order-status-updated", groupId = "notification-service")
+    public void handleOrderStatusUpdate(@Payload OrderNotificationEvent event,
+                                      @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                                      Acknowledgment acknowledgment) {
         log.info("Processing order status update notification for order: {} - {} to {}", 
                 event.getOrderNumber(), event.getOldStatus(), event.getNewStatus());
         
@@ -81,17 +91,21 @@ public class OrderNotificationListener {
             }
             
             log.info("Order status update notifications sent successfully for order: {}", event.getOrderNumber());
+            acknowledgment.acknowledge();
             
         } catch (Exception e) {
             log.error("Failed to process order status update notification for order: {}", event.getOrderNumber(), e);
+            // Don't acknowledge on error - message will be retried
         }
     }
     
     /**
      * Handle order cancellation notifications
      */
-    @RabbitListener(queues = "order.cancelled.queue")
-    public void handleOrderCancellation(OrderNotificationEvent event) {
+    @KafkaListener(topics = "order-cancelled", groupId = "notification-service")
+    public void handleOrderCancellation(@Payload OrderNotificationEvent event,
+                                      @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                                      Acknowledgment acknowledgment) {
         log.info("Processing order cancellation notification for order: {}", event.getOrderNumber());
         
         try {
@@ -114,17 +128,21 @@ public class OrderNotificationListener {
             }
             
             log.info("Order cancellation notifications sent successfully for order: {}", event.getOrderNumber());
+            acknowledgment.acknowledge();
             
         } catch (Exception e) {
             log.error("Failed to process order cancellation notification for order: {}", event.getOrderNumber(), e);
+            // Don't acknowledge on error - message will be retried
         }
     }
     
     /**
      * Handle payment confirmation notifications
      */
-    @RabbitListener(queues = "payment.confirmed.queue")
-    public void handlePaymentConfirmation(OrderNotificationEvent event) {
+    @KafkaListener(topics = "payment-confirmed", groupId = "notification-service")
+    public void handlePaymentConfirmation(@Payload OrderNotificationEvent event,
+                                        @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                                        Acknowledgment acknowledgment) {
         log.info("Processing payment confirmation notification for order: {}", event.getOrderNumber());
         
         try {
@@ -149,17 +167,21 @@ public class OrderNotificationListener {
             }
             
             log.info("Payment confirmation notifications sent successfully for order: {}", event.getOrderNumber());
+            acknowledgment.acknowledge();
             
         } catch (Exception e) {
             log.error("Failed to process payment confirmation notification for order: {}", event.getOrderNumber(), e);
+            // Don't acknowledge on error - message will be retried
         }
     }
     
     /**
      * Handle order delivered notifications
      */
-    @RabbitListener(queues = "order.delivered.queue")
-    public void handleOrderDelivered(OrderNotificationEvent event) {
+    @KafkaListener(topics = "order-delivered", groupId = "notification-service")
+    public void handleOrderDelivered(@Payload OrderNotificationEvent event,
+                                   @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+                                   Acknowledgment acknowledgment) {
         log.info("Processing order delivered notification for order: {}", event.getOrderNumber());
         
         try {
@@ -181,9 +203,11 @@ public class OrderNotificationListener {
             }
             
             log.info("Order delivered notifications sent successfully for order: {}", event.getOrderNumber());
+            acknowledgment.acknowledge();
             
         } catch (Exception e) {
             log.error("Failed to process order delivered notification for order: {}", event.getOrderNumber(), e);
+            // Don't acknowledge on error - message will be retried
         }
     }
     

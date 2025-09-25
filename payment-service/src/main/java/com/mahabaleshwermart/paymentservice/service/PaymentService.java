@@ -1,5 +1,6 @@
 package com.mahabaleshwermart.paymentservice.service;
 
+import com.mahabaleshwermart.paymentservice.config.PaymentGatewayConfig;
 import com.mahabaleshwermart.paymentservice.dto.PaymentRequest;
 import com.mahabaleshwermart.paymentservice.dto.PaymentResponse;
 import com.mahabaleshwermart.paymentservice.dto.PaymentVerificationRequest;
@@ -30,6 +31,8 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final PaymentTransactionRepository transactionRepository;
     private final RazorpayService razorpayService;
+    private final MockPaymentService mockPaymentService;
+    private final PaymentGatewayConfig paymentGatewayConfig;
 
     /**
      * Initiate a new payment
@@ -66,20 +69,36 @@ public class PaymentService {
                     .callbackUrl(paymentRequest.getCallbackUrl())
                     .build();
 
-            // Handle different gateway providers
-            switch (paymentRequest.getGatewayProvider()) {
-                case RAZORPAY -> {
-                    Order razorpayOrder = razorpayService.createOrder(paymentRequest);
-                    payment.setGatewayOrderId(razorpayOrder.get("id"));
-                    payment.setPaymentUrl("https://checkout.razorpay.com/v1/checkout.js");
-                }
-                case STRIPE -> {
-                    // TODO: Implement Stripe integration
-                    throw new UnsupportedOperationException("Stripe integration not implemented yet");
-                }
-                case PAYPAL -> {
-                    // TODO: Implement PayPal integration
-                    throw new UnsupportedOperationException("PayPal integration not implemented yet");
+            // Handle different gateway providers or use mock mode
+            if (paymentGatewayConfig.shouldUseMockMode()) {
+                log.info("Using mock payment mode for testing - payment gateway disabled");
+                MockPaymentService.MockPaymentOrder mockOrder = mockPaymentService.createMockOrder(paymentRequest);
+                payment.setGatewayOrderId(mockOrder.getId());
+                payment.setPaymentUrl(mockOrder.getPaymentUrl());
+            } else {
+                switch (paymentRequest.getGatewayProvider()) {
+                    case RAZORPAY -> {
+                        if (!paymentGatewayConfig.getRazorpay().isEnabled()) {
+                            throw new IllegalStateException("Razorpay gateway is disabled");
+                        }
+                        Order razorpayOrder = razorpayService.createOrder(paymentRequest);
+                        payment.setGatewayOrderId(razorpayOrder.get("id"));
+                        payment.setPaymentUrl("https://checkout.razorpay.com/v1/checkout.js");
+                    }
+                    case STRIPE -> {
+                        if (!paymentGatewayConfig.getStripe().isEnabled()) {
+                            throw new IllegalStateException("Stripe gateway is disabled");
+                        }
+                        // TODO: Implement Stripe integration
+                        throw new UnsupportedOperationException("Stripe integration not implemented yet");
+                    }
+                    case PAYPAL -> {
+                        if (!paymentGatewayConfig.getPaypal().isEnabled()) {
+                            throw new IllegalStateException("PayPal gateway is disabled");
+                        }
+                        // TODO: Implement PayPal integration
+                        throw new UnsupportedOperationException("PayPal integration not implemented yet");
+                    }
                 }
             }
 
@@ -120,24 +139,41 @@ public class PaymentService {
             Payment payment = paymentRepository.findById(verificationRequest.getPaymentId())
                     .orElseThrow(() -> new IllegalArgumentException("Payment not found: " + verificationRequest.getPaymentId()));
 
-            // Verify signature based on gateway
+            // Verify signature based on gateway or use mock mode
             boolean isValid = false;
-            switch (payment.getGatewayProvider()) {
-                case RAZORPAY -> {
-                    isValid = razorpayService.verifyPaymentSignature(verificationRequest);
-                    if (isValid) {
-                        // Fetch payment details from Razorpay
-                        com.razorpay.Payment razorpayPayment = razorpayService.fetchPayment(verificationRequest.getGatewayPaymentId());
-                        updatePaymentFromGatewayResponse(payment, razorpayPayment);
+            if (paymentGatewayConfig.shouldUseMockMode()) {
+                log.info("Using mock payment verification - payment gateway disabled");
+                isValid = mockPaymentService.verifyMockPayment(verificationRequest);
+                if (isValid) {
+                    mockPaymentService.updatePaymentWithMockResponse(payment);
+                }
+            } else {
+                switch (payment.getGatewayProvider()) {
+                    case RAZORPAY -> {
+                        if (!paymentGatewayConfig.getRazorpay().isEnabled()) {
+                            throw new IllegalStateException("Razorpay gateway is disabled");
+                        }
+                        isValid = razorpayService.verifyPaymentSignature(verificationRequest);
+                        if (isValid) {
+                            // Fetch payment details from Razorpay
+                            com.razorpay.Payment razorpayPayment = razorpayService.fetchPayment(verificationRequest.getGatewayPaymentId());
+                            updatePaymentFromGatewayResponse(payment, razorpayPayment);
+                        }
                     }
-                }
-                case STRIPE -> {
-                    // TODO: Implement Stripe verification
-                    throw new UnsupportedOperationException("Stripe verification not implemented yet");
-                }
-                case PAYPAL -> {
-                    // TODO: Implement PayPal verification
-                    throw new UnsupportedOperationException("PayPal verification not implemented yet");
+                    case STRIPE -> {
+                        if (!paymentGatewayConfig.getStripe().isEnabled()) {
+                            throw new IllegalStateException("Stripe gateway is disabled");
+                        }
+                        // TODO: Implement Stripe verification
+                        throw new UnsupportedOperationException("Stripe verification not implemented yet");
+                    }
+                    case PAYPAL -> {
+                        if (!paymentGatewayConfig.getPaypal().isEnabled()) {
+                            throw new IllegalStateException("PayPal gateway is disabled");
+                        }
+                        // TODO: Implement PayPal verification
+                        throw new UnsupportedOperationException("PayPal verification not implemented yet");
+                    }
                 }
             }
 
@@ -246,19 +282,35 @@ public class PaymentService {
                 throw new IllegalArgumentException("Refund amount exceeds available amount for refund");
             }
 
-            // Create refund with gateway
+            // Create refund with gateway or use mock mode
             com.razorpay.Refund razorpayRefund = null;
-            switch (payment.getGatewayProvider()) {
-                case RAZORPAY -> {
-                    razorpayRefund = razorpayService.createRefund(payment.getGatewayPaymentId(), refundAmount, reason);
-                }
-                case STRIPE -> {
-                    // TODO: Implement Stripe refund
-                    throw new UnsupportedOperationException("Stripe refund not implemented yet");
-                }
-                case PAYPAL -> {
-                    // TODO: Implement PayPal refund
-                    throw new UnsupportedOperationException("PayPal refund not implemented yet");
+            MockPaymentService.MockRefund mockRefund = null;
+            
+            if (paymentGatewayConfig.shouldUseMockMode()) {
+                log.info("Using mock refund mode - payment gateway disabled");
+                mockRefund = mockPaymentService.createMockRefund(paymentId, refundAmount, reason);
+            } else {
+                switch (payment.getGatewayProvider()) {
+                    case RAZORPAY -> {
+                        if (!paymentGatewayConfig.getRazorpay().isEnabled()) {
+                            throw new IllegalStateException("Razorpay gateway is disabled");
+                        }
+                        razorpayRefund = razorpayService.createRefund(payment.getGatewayPaymentId(), refundAmount, reason);
+                    }
+                    case STRIPE -> {
+                        if (!paymentGatewayConfig.getStripe().isEnabled()) {
+                            throw new IllegalStateException("Stripe gateway is disabled");
+                        }
+                        // TODO: Implement Stripe refund
+                        throw new UnsupportedOperationException("Stripe refund not implemented yet");
+                    }
+                    case PAYPAL -> {
+                        if (!paymentGatewayConfig.getPaypal().isEnabled()) {
+                            throw new IllegalStateException("PayPal gateway is disabled");
+                        }
+                        // TODO: Implement PayPal refund
+                        throw new UnsupportedOperationException("PayPal refund not implemented yet");
+                    }
                 }
             }
 
@@ -277,6 +329,8 @@ public class PaymentService {
 
             if (razorpayRefund != null) {
                 refundTransaction.setGatewayTransactionId(razorpayRefund.get("id"));
+            } else if (mockRefund != null) {
+                refundTransaction.setGatewayTransactionId(mockRefund.getId());
             }
 
             transactionRepository.save(refundTransaction);

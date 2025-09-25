@@ -15,6 +15,7 @@ import com.mahabaleshwermart.orderservice.external.CartItemDto;
 import com.mahabaleshwermart.orderservice.external.UserServiceClient;
 import com.mahabaleshwermart.orderservice.external.UserDto;
 import com.mahabaleshwermart.orderservice.client.PaymentServiceClient;
+import com.mahabaleshwermart.orderservice.config.PaymentConfig;
 import com.mahabaleshwermart.orderservice.dto.payment.PaymentRequest;
 import com.mahabaleshwermart.orderservice.dto.payment.PaymentResponse;
 import com.mahabaleshwermart.orderservice.dto.payment.PaymentVerificationRequest;
@@ -52,6 +53,7 @@ public class OrderService {
     private final CartServiceClient cartServiceClient;
     private final UserServiceClient userServiceClient;
     private final PaymentServiceClient paymentServiceClient;
+    private final PaymentConfig paymentConfig;
     
     private static final BigDecimal TAX_RATE = BigDecimal.valueOf(0.18); // 18% GST
     private static final BigDecimal FREE_DELIVERY_THRESHOLD = BigDecimal.valueOf(500);
@@ -667,6 +669,34 @@ public class OrderService {
             .notes("Order payment for " + order.getOrderNumber())
             .build();
             
+        // Check if payment processing should be skipped (mock mode)
+        if (paymentConfig.shouldSkipPaymentProcessing()) {
+            log.info("Payment processing disabled - using mock mode for order: {}", orderId);
+            
+            // Create mock payment response for testing
+            PaymentResponse mockPaymentResponse = PaymentResponse.builder()
+                .paymentId(System.currentTimeMillis()) // Mock payment ID
+                .orderId(orderId)
+                .userId(Long.valueOf(order.getUserId()))
+                .amount(order.getTotalAmount())
+                .currency("INR")
+                .paymentMethod(paymentMethod)
+                .gatewayProvider(gatewayProvider)
+                .status("SUCCESS")
+                .gatewayPaymentId("mock_pay_" + System.currentTimeMillis())
+                .gatewayOrderId("mock_order_" + System.currentTimeMillis())
+                .paymentUrl("http://localhost:8086/api/payments/mock/checkout/" + orderId)
+                .message("Mock payment initiated successfully - testing mode")
+                .build();
+            
+            // Update order payment details with mock data
+            updateOrderPaymentDetails(order, mockPaymentResponse, paymentMethod);
+            orderRepository.save(order);
+            
+            log.info("Mock payment initiated successfully for order: {}", orderId);
+            return mockPaymentResponse;
+        }
+        
         try {
             // Call payment service to initiate payment
             var response = paymentServiceClient.initiatePayment(paymentRequest);
@@ -699,6 +729,32 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
             
+        // Check if payment processing should be skipped (mock mode)
+        if (paymentConfig.shouldSkipPaymentProcessing()) {
+            log.info("Payment verification disabled - using mock mode for order: {}", orderId);
+            
+            // Create mock payment verification response for testing
+            PaymentResponse mockPaymentResponse = PaymentResponse.builder()
+                .paymentId(Long.valueOf(verificationRequest.getPaymentId()))
+                .orderId(orderId)
+                .userId(Long.valueOf(order.getUserId()))
+                .amount(order.getTotalAmount())
+                .currency("INR")
+                .status("SUCCESS")
+                .gatewayPaymentId("mock_pay_" + System.currentTimeMillis())
+                .message("Mock payment verified successfully - testing mode")
+                .build();
+            
+            // Update order based on mock payment status
+            updateOrderAfterPaymentVerification(order, mockPaymentResponse);
+            orderRepository.save(order);
+            
+            // Send notification for successful mock payment
+            log.info("Mock payment verified successfully for order: {}", orderId);
+            
+            return mockPaymentResponse;
+        }
+        
         try {
             // Call payment service to verify payment
             var response = paymentServiceClient.verifyPayment(verificationRequest);

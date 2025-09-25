@@ -118,24 +118,52 @@ services:
       timeout: 10s
       retries: 3
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: mahabaleshwer-rabbitmq
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: mahabaleshwer-zookeeper
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin123
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "2181:2181"
     networks:
       - mahabaleshwer-network
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: mahabaleshwer-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    networks:
+      - mahabaleshwer-network
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # User Service
   user-service:
@@ -266,9 +294,11 @@ services:
       - MYSQL_USERNAME=root
       - MYSQL_PASSWORD=root
       - REDIS_HOST=mahabaleshwer-redis
-      - RABBITMQ_HOST=mahabaleshwer-rabbitmq
-      - RABBITMQ_USERNAME=admin
-      - RABBITMQ_PASSWORD=admin123
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      # Payment Gateway Configuration (DISABLED for testing)
+      - PAYMENT_GATEWAY_ENABLED=false
+      - PAYMENT_MOCK_MODE=true
+      - SKIP_PAYMENT_PROCESSING=true
     depends_on:
       config-server:
         condition: service_started
@@ -278,7 +308,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      rabbitmq:
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
@@ -307,11 +337,17 @@ services:
       - DB_USERNAME=root
       - DB_PASSWORD=root
       - REDIS_HOST=mahabaleshwer-redis
-      # Razorpay Configuration (Test Mode for Pre-prod)
+      # Payment Gateway Configuration (DISABLED for testing)
+      - PAYMENT_GATEWAY_ENABLED=false
+      - PAYMENT_MOCK_MODE=true
+      - RAZORPAY_ENABLED=false
+      - STRIPE_ENABLED=false
+      - PAYPAL_ENABLED=false
+      # Razorpay Configuration (Test Mode - DISABLED)
       - RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxx
       - RAZORPAY_KEY_SECRET=test_secret_key
       - RAZORPAY_WEBHOOK_SECRET=test_webhook_secret
-      # Other Payment Gateway Configs
+      # Other Payment Gateway Configs (DISABLED)
       - STRIPE_PUBLIC_KEY=pk_test_xxxxxxxxxx
       - STRIPE_SECRET_KEY=sk_test_xxxxxxxxxx
       - PAYPAL_CLIENT_ID=sandbox_client_id
@@ -347,9 +383,7 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
       - CONFIG_SERVER_URI=http://config-server:8888
       - EUREKA_SERVER_URL=http://eureka-user:eureka-pass@service-discovery:8761/eureka/
-      - RABBITMQ_HOST=mahabaleshwer-rabbitmq
-      - RABBITMQ_USERNAME=admin
-      - RABBITMQ_PASSWORD=admin123
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       # Email Configuration (Gmail SMTP)
       - EMAIL_ENABLED=true
       - MAIL_HOST=smtp.gmail.com
@@ -363,7 +397,7 @@ services:
         condition: service_started
       service-discovery:
         condition: service_healthy
-      rabbitmq:
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8085/actuator/health"]
@@ -377,7 +411,7 @@ volumes:
     driver: local
   redis_data:
     driver: local
-  rabbitmq_data:
+  kafka_data:
     driver: local
 
 networks:
