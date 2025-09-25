@@ -36,7 +36,7 @@ public class PaymentController {
     @Operation(summary = "Initiate payment for an order", 
                description = "Start the payment process for a pending order")
     public ResponseEntity<PaymentResponse> initiatePayment(
-            @Parameter(description = "Order ID") @PathVariable Long orderId,
+            @Parameter(description = "Order ID") @PathVariable String orderId,
             @Parameter(description = "Payment method") @RequestParam String paymentMethod,
             @Parameter(description = "Gateway provider") @RequestParam(defaultValue = "RAZORPAY") String gatewayProvider) {
         
@@ -55,7 +55,7 @@ public class PaymentController {
     @Operation(summary = "Verify payment completion", 
                description = "Verify payment signature and update order status")
     public ResponseEntity<PaymentResponse> verifyPayment(
-            @Parameter(description = "Order ID") @PathVariable Long orderId,
+            @Parameter(description = "Order ID") @PathVariable String orderId,
             @Valid @RequestBody PaymentVerificationRequest verificationRequest) {
         
         log.info("Verifying payment for order: {}", orderId);
@@ -72,7 +72,7 @@ public class PaymentController {
     @Operation(summary = "Process refund for an order", 
                description = "Initiate refund process for a completed payment")
     public ResponseEntity<PaymentResponse> processRefund(
-            @Parameter(description = "Order ID") @PathVariable Long orderId,
+            @Parameter(description = "Order ID") @PathVariable String orderId,
             @Valid @RequestBody RefundRequest refundRequest) {
         
         log.info("Processing refund for order: {}", orderId);
@@ -89,7 +89,7 @@ public class PaymentController {
     @Operation(summary = "Get payment status", 
                description = "Get current payment status for an order")
     public ResponseEntity<PaymentResponse> getPaymentStatus(
-            @Parameter(description = "Order ID") @PathVariable Long orderId) {
+            @Parameter(description = "Order ID") @PathVariable String orderId) {
         
         log.info("Getting payment status for order: {}", orderId);
         

@@ -65,7 +65,7 @@ public class PaymentServiceClientFallback implements PaymentServiceClient {
         log.error("Payment service is unavailable. Cannot fetch payment for order: {}", orderId);
         
         PaymentResponse fallbackResponse = PaymentResponse.builder()
-            .orderId(Long.valueOf(orderId))
+            .orderId(orderId)
             .status("UNKNOWN")
             .message("Payment service is currently unavailable. Cannot fetch payment details.")
             .build();

@@ -623,10 +623,10 @@ public class OrderService {
      * Initiate payment for an order
      */
     @Transactional
-    public PaymentResponse initiatePayment(Long orderId, String paymentMethod, String gatewayProvider) {
+    public PaymentResponse initiatePayment(String orderId, String paymentMethod, String gatewayProvider) {
         log.info("Initiating payment for order: {}", orderId);
         
-        Order order = orderRepository.findById(String.valueOf(orderId))
+        Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
             
         // Validate order status
@@ -693,10 +693,10 @@ public class OrderService {
      * Verify payment completion
      */
     @Transactional
-    public PaymentResponse verifyPayment(Long orderId, PaymentVerificationRequest verificationRequest) {
+    public PaymentResponse verifyPayment(String orderId, PaymentVerificationRequest verificationRequest) {
         log.info("Verifying payment for order: {}", orderId);
         
-        Order order = orderRepository.findById(String.valueOf(orderId))
+        Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
             
         try {
@@ -732,10 +732,10 @@ public class OrderService {
      * Process refund for an order
      */
     @Transactional
-    public PaymentResponse processRefund(Long orderId, RefundRequest refundRequest) {
+    public PaymentResponse processRefund(String orderId, RefundRequest refundRequest) {
         log.info("Processing refund for order: {}", orderId);
         
-        Order order = orderRepository.findById(String.valueOf(orderId))
+        Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + orderId));
             
         // Validate order can be refunded
@@ -745,7 +745,7 @@ public class OrderService {
         
         try {
             // Get payment details from payment service
-            var paymentResponse = paymentServiceClient.getPaymentByOrderId(String.valueOf(orderId));
+            var paymentResponse = paymentServiceClient.getPaymentByOrderId(orderId);
             PaymentResponse payment = paymentResponse.getBody();
             
             if (payment == null || payment.getPaymentId() == null) {
