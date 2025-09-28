@@ -47,6 +47,7 @@ public class ProductMapper {
         dto.setSupplierName(product.getSupplierName());
         dto.setBarcode(product.getBarcode());
         dto.setImage(product.getImage());
+        dto.setImages(product.getImages());
         dto.setWeightKg(product.getWeightKg());
         dto.setShelfLifeDays(product.getShelfLifeDays());
         dto.setStorageInstructions(product.getStorageInstructions());
@@ -90,6 +91,7 @@ public class ProductMapper {
         product.setSupplierName(productDto.getSupplierName());
         product.setBarcode(productDto.getBarcode());
         product.setImage(productDto.getImage());
+        product.setImages(productDto.getImages());
         product.setWeightKg(productDto.getWeightKg());
         product.setShelfLifeDays(productDto.getShelfLifeDays());
         product.setStorageInstructions(productDto.getStorageInstructions());
@@ -143,6 +145,7 @@ public class ProductMapper {
         if (productDto.getSupplierName() != null) product.setSupplierName(productDto.getSupplierName());
         if (productDto.getBarcode() != null) product.setBarcode(productDto.getBarcode());
         if (productDto.getImage() != null) product.setImage(productDto.getImage());
+        if (productDto.getImages() != null) product.setImages(productDto.getImages());
         if (productDto.getWeightKg() != null) product.setWeightKg(productDto.getWeightKg());
         if (productDto.getShelfLifeDays() != null) product.setShelfLifeDays(productDto.getShelfLifeDays());
         if (productDto.getStorageInstructions() != null) product.setStorageInstructions(productDto.getStorageInstructions());

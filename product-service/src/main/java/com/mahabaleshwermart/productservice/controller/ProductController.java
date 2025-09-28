@@ -305,6 +305,30 @@ public class ProductController {
             ApiResponse.created(createdProduct, "Product created successfully")
         );
     }
+
+    /**
+     * Update an existing product
+     */
+    @PutMapping("/{id}")
+    @Operation(summary = "Update product", description = "Update an existing product")
+    public ResponseEntity<ApiResponse<ProductDto>> updateProduct(
+            @PathVariable String id,
+            @RequestBody ProductDto productDto) {
+        log.info("Update product request: {}", id);
+        ProductDto updated = productService.updateProduct(id, productDto);
+        return ResponseEntity.ok(ApiResponse.success(updated, "Product updated successfully"));
+    }
+
+    /**
+     * Delete a product (soft delete)
+     */
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete product", description = "Soft delete a product by id")
+    public ResponseEntity<ApiResponse<String>> deleteProduct(@PathVariable String id) {
+        log.info("Delete product request: {}", id);
+        productService.deleteProduct(id);
+        return ResponseEntity.ok(ApiResponse.success("Product deleted successfully"));
+    }
     
     /**
      * Test POST endpoint
