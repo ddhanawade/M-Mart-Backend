@@ -328,6 +328,18 @@ public class ProductService {
     }
 
     /**
+     * Get products by a list of IDs
+     */
+    @Transactional(readOnly = true)
+    public List<ProductDto> getProductsByIds(List<String> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        List<Product> products = productRepository.findAllById(ids).stream()
+                .filter(Product::isActive)
+                .toList();
+        return productMapper.toDtoList(products);
+    }
+
+    /**
      * Generate SKU for product
      */
     private String generateSku(String name, Product.ProductCategory category) {

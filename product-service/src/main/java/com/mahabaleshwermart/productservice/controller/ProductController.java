@@ -86,6 +86,17 @@ public class ProductController {
             ApiResponse.success(product, "Product retrieved successfully")
         );
     }
+
+    /**
+     * Get products by IDs
+     */
+    @PostMapping("/by-ids")
+    @Operation(summary = "Get products by IDs", description = "Retrieve multiple products by their IDs")
+    public ResponseEntity<ApiResponse<List<ProductDto>>> getProductsByIds(@RequestBody List<String> ids) {
+        log.info("Get products by IDs: {}", ids != null ? ids.size() : 0);
+        List<ProductDto> products = productService.getProductsByIds(ids);
+        return ResponseEntity.ok(ApiResponse.success(products, "Products retrieved successfully"));
+    }
     
     /**
      * Search products with advanced filters
