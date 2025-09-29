@@ -89,9 +89,15 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     @Query("SELECT p FROM Product p WHERE " +
            "(:query IS NULL OR " +
            " LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-           " LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
+           " LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           " LOWER(p.brand) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           " LOWER(p.farmerName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           " LOWER(p.supplierName) LIKE LOWER(CONCAT('%', :query, '%'))) AND " +
            "(:category IS NULL OR p.category = :category) AND " +
            "(:subcategory IS NULL OR p.subcategory = :subcategory) AND " +
+           "(:brand IS NULL OR LOWER(p.brand) = LOWER(:brand)) AND " +
+           "(:farmerName IS NULL OR LOWER(p.farmerName) = LOWER(:farmerName)) AND " +
+           "(:season IS NULL OR LOWER(p.season) = LOWER(:season)) AND " +
            "(:minPrice IS NULL OR p.price >= :minPrice) AND " +
            "(:maxPrice IS NULL OR p.price <= :maxPrice) AND " +
            "(:minRating IS NULL OR p.rating >= :minRating) AND " +
@@ -104,6 +110,9 @@ public interface ProductRepository extends JpaRepository<Product, String> {
         @Param("query") String query,
         @Param("category") Product.ProductCategory category,
         @Param("subcategory") String subcategory,
+        @Param("brand") String brand,
+        @Param("farmerName") String farmerName,
+        @Param("season") String season,
         @Param("minPrice") BigDecimal minPrice,
         @Param("maxPrice") BigDecimal maxPrice,
         @Param("minRating") BigDecimal minRating,

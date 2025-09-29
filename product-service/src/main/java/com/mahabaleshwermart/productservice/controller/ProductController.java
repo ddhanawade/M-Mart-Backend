@@ -107,6 +107,9 @@ public class ProductController {
             @Parameter(description = "Search query") @RequestParam(required = false) String query,
             @Parameter(description = "Product category") @RequestParam(required = false) String category,
             @Parameter(description = "Product subcategory") @RequestParam(required = false) String subcategory,
+            @Parameter(description = "Brand name") @RequestParam(required = false) String brand,
+            @Parameter(description = "Farmer name") @RequestParam(required = false, name = "farmer") String farmerName,
+            @Parameter(description = "Season label") @RequestParam(required = false) String season,
             @Parameter(description = "Minimum price") @RequestParam(required = false) BigDecimal minPrice,
             @Parameter(description = "Maximum price") @RequestParam(required = false) BigDecimal maxPrice,
             @Parameter(description = "Minimum rating") @RequestParam(required = false) BigDecimal minRating,
@@ -134,8 +137,8 @@ public class ProductController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         
         PageResponse<ProductDto> products = productService.searchProducts(
-            query, productCategory, subcategory, minPrice, maxPrice, 
-            minRating, inStock, organic, fresh, featured, pageable
+            query, productCategory, subcategory, brand, farmerName, season, 
+            minPrice, maxPrice, minRating, inStock, organic, fresh, featured, pageable
         );
         
         return ResponseEntity.ok(

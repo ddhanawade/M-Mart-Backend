@@ -115,6 +115,16 @@ public class Product implements Serializable {
     
     @Column(name = "supplier_name")
     private String supplierName;
+
+    // New optional fields for richer catalog filtering
+    @Column(name = "brand")
+    private String brand; // e.g., Mapro, Malas, Madhusagar
+
+    @Column(name = "farmer_name")
+    private String farmerName; // e.g., Anjali, Bharat
+
+    @Column(name = "season")
+    private String season; // e.g., winter, summer, monsoon; or fruit season label
     
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

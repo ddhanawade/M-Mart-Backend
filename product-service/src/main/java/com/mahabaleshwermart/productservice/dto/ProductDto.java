@@ -49,6 +49,9 @@ public class ProductDto implements Serializable {
     private String storageInstructions;
     private String originCountry;
     private String supplierName;
+    private String brand;
+    private String farmerName;
+    private String season;
     private LocalDateTime createdAt;
     private NutritionalInfoDto nutritionalInfo;
     private List<ProductReviewDto> reviews;

@@ -45,6 +45,9 @@ public class ProductMapper {
         dto.setDiscountPercentage(calculateDiscountPercentage(product));
         dto.setOriginCountry(product.getOriginCountry());
         dto.setSupplierName(product.getSupplierName());
+        dto.setBrand(product.getBrand());
+        dto.setFarmerName(product.getFarmerName());
+        dto.setSeason(product.getSeason());
         dto.setBarcode(product.getBarcode());
         dto.setImage(product.getImage());
         dto.setImages(product.getImages());
@@ -89,6 +92,9 @@ public class ProductMapper {
         product.setDiscount(productDto.getDiscount() != null ? productDto.getDiscount() : BigDecimal.ZERO);
         product.setOriginCountry(productDto.getOriginCountry());
         product.setSupplierName(productDto.getSupplierName());
+        product.setBrand(productDto.getBrand());
+        product.setFarmerName(productDto.getFarmerName());
+        product.setSeason(productDto.getSeason());
         product.setBarcode(productDto.getBarcode());
         product.setImage(productDto.getImage());
         product.setImages(productDto.getImages());
@@ -143,6 +149,9 @@ public class ProductMapper {
         if (productDto.getDiscount() != null) product.setDiscount(productDto.getDiscount());
         if (productDto.getOriginCountry() != null) product.setOriginCountry(productDto.getOriginCountry());
         if (productDto.getSupplierName() != null) product.setSupplierName(productDto.getSupplierName());
+        if (productDto.getBrand() != null) product.setBrand(productDto.getBrand());
+        if (productDto.getFarmerName() != null) product.setFarmerName(productDto.getFarmerName());
+        if (productDto.getSeason() != null) product.setSeason(productDto.getSeason());
         if (productDto.getBarcode() != null) product.setBarcode(productDto.getBarcode());
         if (productDto.getImage() != null) product.setImage(productDto.getImage());
         if (productDto.getImages() != null) product.setImages(productDto.getImages());

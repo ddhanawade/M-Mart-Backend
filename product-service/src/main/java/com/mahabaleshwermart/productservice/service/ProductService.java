@@ -87,6 +87,9 @@ public class ProductService {
             String query,
             Product.ProductCategory category,
             String subcategory,
+            String brand,
+            String farmerName,
+            String season,
             BigDecimal minPrice,
             BigDecimal maxPrice,
             BigDecimal minRating,
@@ -99,8 +102,8 @@ public class ProductService {
         log.info("Searching products with query: '{}', category: {}", query, category);
         
         Page<Product> products = productRepository.searchWithFilters(
-            query, category, subcategory, minPrice, maxPrice, 
-            minRating, inStock, organic, fresh, featured, pageable
+            query, category, subcategory, brand, farmerName, season, 
+            minPrice, maxPrice, minRating, inStock, organic, fresh, featured, pageable
         );
         
         List<ProductDto> productDtos = productMapper.toDtoList(products.getContent());

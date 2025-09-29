@@ -439,5 +439,123 @@ create_product '{
     }
 }'
 
+# 11. Alphonso Mango (Seasonal Featured)
+create_product '{
+    "name": "Alphonso Mango (Seasonal)",
+    "description": "Premium Alphonso mangoes from Ratnagiri, rich aroma and sweetness. Limited seasonal stock.",
+    "price": 750.00,
+    "originalPrice": 899.00,
+    "category": "FRUITS",
+    "subcategory": "Seasonal",
+    "image": "https://images.unsplash.com/photo-1623428454178-42ebc1dd1bac?w=500&h=500&fit=crop",
+    "images": [
+        "https://images.unsplash.com/photo-1623428454178-42ebc1dd1bac?w=500&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1601042879364-f3947d3b4019?w=500&h=500&fit=crop"
+    ],
+    "inStock": true,
+    "quantity": 35,
+    "unit": "dozen",
+    "rating": 4.9,
+    "reviewCount": 42,
+    "organic": false,
+    "fresh": true,
+    "discount": 16.59,
+    "active": true,
+    "featured": true,
+    "sku": "FRUIT-MANGO-ALPH-001",
+    "barcode": "1234567890133",
+    "weightKg": 2.0,
+    "shelfLifeDays": 6,
+    "storageInstructions": "Keep in a cool, ventilated place. Do not refrigerate until ripe.",
+    "originCountry": "India",
+    "supplierName": "Ratnagiri Mango Farmers Co.",
+    "nutritionalInfo": {
+        "caloriesPer100g": 60,
+        "proteinG": 0.8,
+        "carbsG": 15.0,
+        "fatG": 0.4,
+        "fiberG": 1.6,
+        "vitamins": ["Vitamin A", "Vitamin C", "Folate"]
+    }
+}'
+
+# 12. Organic Spinach (Vegetables)
+create_product '{
+    "name": "Organic Spinach Bunch",
+    "description": "Fresh organic spinach leaves, perfect for salads, soups, and curries. Rich in iron and vitamins.",
+    "price": 40.00,
+    "originalPrice": 50.00,
+    "category": "VEGETABLES",
+    "subcategory": "Leafy Greens",
+    "image": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&h=500&fit=crop",
+    "images": [
+        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&h=500&fit=crop"
+    ],
+    "inStock": true,
+    "quantity": 120,
+    "unit": "bunch",
+    "rating": 4.6,
+    "reviewCount": 54,
+    "organic": true,
+    "fresh": true,
+    "discount": 20.00,
+    "active": true,
+    "featured": false,
+    "sku": "VEG-SPINACH-ORG-001",
+    "barcode": "1234567890134",
+    "weightKg": 0.25,
+    "shelfLifeDays": 3,
+    "storageInstructions": "Refrigerate in a perforated bag. Wash before use.",
+    "originCountry": "India",
+    "supplierName": "Mahabaleshwar Organic Farms",
+    "nutritionalInfo": {
+        "caloriesPer100g": 23,
+        "proteinG": 2.9,
+        "carbsG": 3.6,
+        "fatG": 0.4,
+        "fiberG": 2.2,
+        "vitamins": ["Vitamin K", "Vitamin A", "Iron"]
+    }
+}'
+
+# 13. Mapro Strawberry Crush (Brand)
+create_product '{
+    "name": "Mapro Strawberry Crush",
+    "description": "Popular from Panchgani; authentic strawberry crush perfect for desserts and beverages.",
+    "price": 180.00,
+    "originalPrice": 220.00,
+    "category": "BEVERAGES",
+    "subcategory": "Syrups & Crushes",
+    "image": "https://images.unsplash.com/photo-1604908812385-6e4a6a93d3da?w=500&h=500&fit=crop",
+    "images": [
+        "https://images.unsplash.com/photo-1604908812385-6e4a6a93d3da?w=500&h=500&fit=crop"
+    ],
+    "inStock": true,
+    "quantity": 90,
+    "unit": "ml",
+    "rating": 4.5,
+    "reviewCount": 120,
+    "organic": false,
+    "fresh": false,
+    "discount": 18.18,
+    "active": true,
+    "featured": true,
+    "sku": "MAPRO-CRUSH-STRAWBERRY-750",
+    "barcode": "1234567890135",
+    "weightKg": 0.9,
+    "shelfLifeDays": 365,
+    "storageInstructions": "Store in a cool, dry place. Refrigerate after opening.",
+    "originCountry": "India",
+    "supplierName": "Mapro Foods",
+    "nutritionalInfo": {
+        "caloriesPer100g": 120,
+        "proteinG": 0.2,
+        "carbsG": 30.0,
+        "fatG": 0.1,
+        "fiberG": 0.2,
+        "vitamins": ["Vitamin C"]
+    }
+}'
+
 echo "🎉 Sample product insertion completed!"
 echo "Check your M-Mart application to see the new products with images."
